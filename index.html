@@ -927,18 +927,32 @@ async function syncFromAPI(){
     if(!r.ok) throw new Error('HTTP '+r.status);
     const remote=await r.json();
     let changed=false;
-    /* merge remote into local (remote wins for each key) */
+
+    /* merge remote INTO local — remote wins per key */
     for(const [wiki,s] of Object.entries(remote)){
       if(!sightings[wiki]||new Date(s.ts)>=new Date(sightings[wiki].ts||0)){
         sightings[wiki]=s; spotted.add(wiki); changed=true;
       }
     }
-    /* also remove any locally-spotted birds that were deleted remotely */
-    for(const wiki of [...spotted]){
-      if(!remote[wiki]&&sightings[wiki]&&!sightings[wiki]._localOnly){
-        delete sightings[wiki]; spotted.delete(wiki); changed=true;
+
+    /* only remove local birds if remote has data AND explicitly doesn't have them
+       — never wipe local data just because remote is empty (KV may not have received pushes yet) */
+    if(Object.keys(remote).length>0){
+      for(const wiki of [...spotted]){
+        if(!remote[wiki]&&sightings[wiki]&&!sightings[wiki]._localOnly){
+          delete sightings[wiki]; spotted.delete(wiki); changed=true;
+        }
       }
     }
+
+    /* push any local-only sightings that failed to sync before */
+    for(const [wiki,s] of Object.entries(sightings)){
+      if(s._localOnly){
+        delete s._localOnly;
+        pushSighting(wiki,s);
+      }
+    }
+
     if(changed){
       saveLocal();
       document.querySelectorAll('.tile').forEach(applySpot);
