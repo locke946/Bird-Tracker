@@ -928,28 +928,33 @@ async function syncFromAPI(){
     const remote=await r.json();
     let changed=false;
 
-    /* merge remote INTO local — remote wins per key */
+    /* ── PULL: bring in anything from remote we don't have or that's newer ── */
     for(const [wiki,s] of Object.entries(remote)){
       if(!sightings[wiki]||new Date(s.ts)>=new Date(sightings[wiki].ts||0)){
         sightings[wiki]=s; spotted.add(wiki); changed=true;
       }
     }
 
-    /* only remove local birds if remote has data AND explicitly doesn't have them
-       — never wipe local data just because remote is empty (KV may not have received pushes yet) */
+    /* ── PUSH: send anything local that remote doesn't have or that's newer ──
+       This is the key fix — makes sure both devices converge on the same list */
+    for(const [wiki,s] of Object.entries(sightings)){
+      const remoteTs=remote[wiki]?new Date(remote[wiki].ts||0):null;
+      const localTs=new Date(s.ts||0);
+      if(!remote[wiki]||localTs>remoteTs){
+        const payload={...s}; delete payload._localOnly;
+        /* fire and forget — don't block the sync */
+        fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({wiki,sighting:payload})}).catch(()=>{});
+      }
+    }
+
+    /* ── REMOVE: only delete local birds if remote has data and doesn't have them
+       Never wipe local data just because remote came back empty ── */
     if(Object.keys(remote).length>0){
       for(const wiki of [...spotted]){
         if(!remote[wiki]&&sightings[wiki]&&!sightings[wiki]._localOnly){
           delete sightings[wiki]; spotted.delete(wiki); changed=true;
         }
-      }
-    }
-
-    /* push any local-only sightings that failed to sync before */
-    for(const [wiki,s] of Object.entries(sightings)){
-      if(s._localOnly){
-        delete s._localOnly;
-        pushSighting(wiki,s);
       }
     }
 
@@ -959,7 +964,7 @@ async function syncFromAPI(){
       updateCount(); updateProgress();
       if(typeof applyFilters==='function') applyFilters();
     }
-    setSyncStatus('ok','Synced');
+    setSyncStatus('ok','Synced ✓');
   }catch(e){
     setSyncStatus('err','Offline — ticks saved locally');
   }finally{_syncPending=false;}
