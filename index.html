@@ -294,6 +294,28 @@
     font-family:var(--display);font-style:italic;text-align:center;}
   .lb-sighting strong{font-style:normal;color:#fff;}
 
+  /* hotspot list in lightbox */
+  .lb-hotspots{width:100%;max-width:min(94vw,480px);margin-top:4px;}
+  .lb-hotspots .lb-hs-title{font-size:11px;text-transform:uppercase;letter-spacing:.15em;
+    font-weight:700;color:rgba(255,255,255,.5);text-align:center;margin:0 0 8px;}
+  .lb-hs-list{display:flex;flex-direction:column;gap:6px;max-height:220px;
+    overflow-y:auto;padding:0 2px;}
+  .lb-hs-list::-webkit-scrollbar{width:4px;}
+  .lb-hs-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:4px;}
+  .lb-hs-item{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+    border-radius:10px;padding:9px 12px;display:flex;align-items:center;gap:10px;
+    text-decoration:none;transition:background .15s;}
+  .lb-hs-item:hover{background:rgba(255,255,255,.18);}
+  .lb-hs-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:#1a7a6e;}
+  .lb-hs-dot.spotted{background:var(--good);}
+  .lb-hs-info{flex:1;min-width:0;}
+  .lb-hs-name{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;}
+  .lb-hs-loc{font-size:11px;color:rgba(255,255,255,.6);}
+  .lb-hs-arrow{font-size:14px;color:rgba(255,255,255,.4);flex-shrink:0;}
+  .lb-no-hs{font-size:12.5px;color:rgba(255,255,255,.5);text-align:center;
+    font-family:var(--display);font-style:italic;padding:10px;}
+
   /* location tag on tile */
   .tile-loc{font-size:10px;color:var(--ink-soft);font-style:italic;
     margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -1199,6 +1221,10 @@ function buildLightbox(){
       <div class="lb-imgwrap"></div>
       <figcaption><span class="lb-name"></span><span class="lb-latin"></span></figcaption>
       <button class="ctrl lb-tick" type="button">Mark spotted</button>
+      <div class="lb-hotspots" id="lbHotspots" style="display:none">
+        <p class="lb-hs-title">Where to find it</p>
+        <div class="lb-hs-list" id="lbHsList"></div>
+      </div>
     </figure>`;
   document.body.appendChild(el);
   el.addEventListener('click',e=>{ if(e.target===el||e.target.closest('.lb-close')) closeLightbox(); });
@@ -1232,7 +1258,36 @@ function openLightbox(tile){
     LB.querySelector('.lb-fig').insertBefore(sightEl,LB.querySelector('.lb-tick'));
   }
   const s=sightings[b.w];
-  sightEl.innerHTML=s?[s.user?`<strong>${s.user}</strong>`:'', s.loc?`📍 ${s.loc}`:'',s.date].filter(Boolean).join(' · '):'';
+  sightEl.innerHTML=s?[s.user?`<strong>${s.user}</strong>`:'',s.loc?`📍 ${s.loc}`:'',s.date].filter(Boolean).join(' · '):'';
+
+  /* ── Where to find it: list hotspots for this bird ── */
+  const hsPanel=LB.querySelector('#lbHotspots');
+  const hsList=LB.querySelector('#lbHsList');
+  const birdHotspots=typeof HOTSPOTS!=='undefined'
+    ? HOTSPOTS.filter(h=>h.birds.includes(b.n)) : [];
+  if(birdHotspots.length){
+    const isSpotted=spotted.has(b.w);
+    hsList.innerHTML=birdHotspots.map(h=>{
+      const alreadySeen=isSpotted;
+      return `<a class="lb-hs-item" href="${h.url||'#'}" target="_blank" rel="noopener"
+        onclick="${h.url?'':'event.preventDefault()'}">
+        <div class="lb-hs-dot${alreadySeen?' spotted':''}"></div>
+        <div class="lb-hs-info">
+          <div class="lb-hs-name">${h.name}</div>
+          <div class="lb-hs-loc">${h.loc}</div>
+        </div>
+        <div class="lb-hs-arrow">${h.url?'↗':'📍'}</div>
+      </a>`;
+    }).join('');
+    hsPanel.style.display='block';
+    /* update title based on spotted status */
+    hsPanel.querySelector('.lb-hs-title').textContent=
+      s ? 'Also found at' : 'Where to find it';
+  } else {
+    hsList.innerHTML=`<p class="lb-no-hs">No specific hotspot data for this bird yet</p>`;
+    hsPanel.style.display='block';
+  }
+
   LB.hidden=false; document.body.style.overflow='hidden';
 }
 function closeLightbox(){ LB.hidden=true; document.body.style.overflow=''; }
