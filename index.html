@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotswold Water Park — Bird Bingo (Photos)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --ink:#163b3a; --ink-soft:#3f5f5c; --paper:#e7ece8; --card:#fbfcfb;
+    --line:#ccd7d1; --accent:#d4632b; --accent-deep:#a8491c; --gold:#b9912f;
+    --good:#3f7d52; --water:#9fc0bf;
+    --display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+    --ui:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--ui);
+    -webkit-font-smoothing:antialiased;padding:24px 14px 46px;}
+  .sheet{max-width:880px;margin:0 auto;background:var(--card);border:1.5px solid var(--ink);
+    border-radius:14px;padding:24px 24px 28px;box-shadow:0 18px 40px -28px rgba(22,59,58,.55);}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;
+    border-bottom:2px solid var(--ink);padding-bottom:13px;flex-wrap:wrap;}
+  .eyebrow{text-transform:uppercase;letter-spacing:.28em;font-size:11px;font-weight:600;
+    color:var(--accent);margin:0 0 4px;}
+  h1{font-family:var(--display);font-weight:600;font-size:33px;line-height:1.02;margin:0;}
+  .sub{font-family:var(--display);font-style:italic;color:var(--ink-soft);font-size:15px;margin:6px 0 0;}
+  .players{display:flex;gap:16px;font-size:13px;color:var(--ink-soft);align-items:flex-end;}
+  .players .line{display:flex;flex-direction:column;gap:3px;}
+  .players .line b{font-weight:600;color:var(--ink);font-size:11px;letter-spacing:.05em;text-transform:uppercase;}
+  .players .line .rule{width:120px;border-bottom:1.5px dotted var(--ink-soft);height:18px;}
+
+  .controls{display:flex;gap:10px;margin:15px 0 2px;flex-wrap:wrap;align-items:center;}
+  .controls .hint{font-size:12.5px;color:var(--ink-soft);margin-left:auto;font-style:italic;font-family:var(--display);}
+  button.ctrl{font-family:var(--ui);font-size:13px;font-weight:600;border:1.5px solid var(--ink);
+    background:var(--card);color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer;
+    transition:transform .12s ease,background .15s ease,color .15s ease;}
+  button.ctrl:hover{transform:translateY(-1px);}
+  button.ctrl.primary{background:var(--ink);color:#fff;}
+  button.ctrl.primary:hover{background:#0f2d2c;}
+  button.ctrl:focus-visible{outline:3px solid var(--accent);outline-offset:2px;}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:13px;}
+  @media(max-width:480px){.grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;}}
+  .tile{position:relative;background:var(--card);border:1.4px solid var(--line);border-radius:11px;
+    padding:0 0 8px;display:flex;flex-direction:column;align-items:center;text-align:center;
+    cursor:pointer;overflow:hidden;font:inherit;transition:border-color .15s ease,box-shadow .15s ease,transform .08s ease;}
+  .tile:hover{border-color:var(--accent);box-shadow:0 6px 16px -10px rgba(212,99,43,.6);}
+  .tile:active{transform:scale(.985);}
+  .tile:focus-visible{outline:3px solid var(--accent);outline-offset:2px;}
+
+  .photo{position:relative;width:100%;aspect-ratio:1 / 1;overflow:hidden;
+    background:linear-gradient(135deg,#e3eae5,#d2ded7);}
+  .photo img{width:100%;height:100%;object-fit:cover;display:block;
+    opacity:0;transition:opacity .4s ease,filter .25s ease;}
+  .photo img.ready{opacity:1;}
+  .photo .fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:10%;}
+  .photo .fallback svg{width:88%;height:auto;}
+  .photo .spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+  .photo .spin::after{content:"";width:20px;height:20px;border:2.5px solid #b9c7bf;
+    border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  .name{font-family:var(--display);font-weight:600;font-size:13.5px;line-height:1.05;margin-top:6px;}
+  .latin{font-family:var(--display);font-style:italic;font-size:10.5px;color:var(--ink-soft);margin-top:1px;}
+  .rarity{margin-top:5px;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+    padding:2px 7px;border-radius:999px;color:#fff;}
+  .r-easy{background:var(--good);} .r-mid{background:var(--gold);} .r-hard{background:var(--accent);}
+
+  .stamp{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%) rotate(-12deg) scale(.4);
+    border:3px solid var(--accent);color:var(--accent);font-family:var(--ui);font-weight:800;
+    letter-spacing:.1em;font-size:13px;text-transform:uppercase;padding:5px 11px;border-radius:8px;
+    opacity:0;pointer-events:none;background:rgba(251,252,251,.82);transition:opacity .2s ease,transform .25s cubic-bezier(.2,1.4,.5,1);}
+  .tile.spotted{border-color:var(--accent);}
+  .tile.spotted .photo img,.tile.spotted .photo .fallback{filter:saturate(.5) brightness(.96);}
+  .tile.spotted .photo::after{content:"";position:absolute;inset:0;background:rgba(212,99,43,.14);}
+  .tile.spotted .stamp{opacity:1;transform:translate(-50%,-50%) rotate(-12deg) scale(1);}
+  .check{position:absolute;top:7px;right:7px;width:22px;height:22px;border-radius:50%;
+    background:#fff;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;
+    color:transparent;font-weight:800;font-size:13px;transition:all .15s ease;z-index:2;}
+  .tile.spotted .check{background:var(--good);border-color:var(--good);color:#fff;}
+
+  footer{margin-top:17px;border-top:1.5px solid var(--line);padding-top:12px;display:flex;
+    justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);}
+  footer .rules{max-width:60%;font-family:var(--display);font-style:italic;font-size:13px;line-height:1.45;}
+  footer .key{display:flex;gap:10px;align-items:center;margin-top:8px;font-size:10px;
+    text-transform:uppercase;letter-spacing:.08em;}
+  footer .key span{display:inline-flex;align-items:center;gap:5px;}
+  footer .key i{width:10px;height:10px;border-radius:3px;display:inline-block;}
+  footer .date{display:flex;flex-direction:column;gap:3px;text-align:right;}
+  footer .date .rule{border-bottom:1.5px dotted var(--ink-soft);width:130px;height:16px;}
+  .count{font-weight:700;color:var(--accent);font-style:normal;}
+
+  button.photo{appearance:none;-webkit-appearance:none;border:0;font:inherit;color:inherit;display:block;width:100%;cursor:zoom-in;}
+  .label{cursor:pointer;width:100%;}
+  .zoom-hint{position:absolute;bottom:6px;right:6px;width:23px;height:23px;border-radius:6px;
+    background:rgba(22,59,58,.6);color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:13px;opacity:0;transition:opacity .15s ease;pointer-events:none;z-index:3;}
+  .photo:hover .zoom-hint,.photo:focus-visible .zoom-hint{opacity:1;}
+  button.check{appearance:none;-webkit-appearance:none;cursor:pointer;font-weight:800;}
+  .lightbox{position:fixed;inset:0;background:rgba(15,28,27,.86);display:flex;align-items:center;
+    justify-content:center;z-index:50;padding:20px;animation:fade .2s ease;}
+  .lightbox[hidden]{display:none;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .lb-fig{margin:0;display:flex;flex-direction:column;align-items:center;gap:13px;max-width:min(94vw,820px);}
+  .lb-imgwrap{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px -20px rgba(0,0,0,.6);
+    max-height:74vh;display:flex;align-items:center;justify-content:center;}
+  .lb-imgwrap img{display:block;max-width:100%;max-height:74vh;object-fit:contain;}
+  .lb-imgwrap svg{width:min(70vw,420px);height:auto;padding:24px;}
+  .lb-fig figcaption{color:#fff;font-family:var(--display);font-size:21px;text-align:center;}
+  .lb-fig figcaption .lb-latin{font-style:italic;font-size:15px;opacity:.82;}
+  .lb-close{position:fixed;top:14px;right:16px;width:42px;height:42px;border-radius:50%;border:0;
+    background:rgba(255,255,255,.16);color:#fff;font-size:19px;cursor:pointer;z-index:51;}
+  .lb-close:hover{background:rgba(255,255,255,.3);}
+  .lb-tick{background:#fff;}
+  .lb-tick.on{background:var(--good);color:#fff;border-color:var(--good);}
+  @media print{.lightbox{display:none !important;}}
+
+  /* ── filters ── */
+  .filters{margin:14px 0 0;display:flex;flex-direction:column;gap:8px;}
+  .search-wrap{position:relative;}
+  .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.45;pointer-events:none;}
+  #search{width:100%;padding:9px 12px 9px 34px;border:1.4px solid var(--line);border-radius:10px;
+    font:inherit;font-size:14px;background:var(--card);color:var(--ink);outline:none;
+    transition:border-color .15s;}
+  #search:focus{border-color:var(--accent);}
+  .filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .filter-row .label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;
+    font-weight:700;color:var(--ink-soft);white-space:nowrap;margin-right:2px;}
+  .pill-group{display:flex;gap:5px;flex-wrap:wrap;}
+  button.pill{font-family:var(--ui);font-size:12px;font-weight:600;border:1.4px solid var(--line);
+    background:var(--card);color:var(--ink-soft);padding:5px 12px;border-radius:999px;cursor:pointer;
+    transition:all .13s ease;white-space:nowrap;}
+  button.pill:hover{border-color:var(--ink);color:var(--ink);}
+  button.pill.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  button.pill.active.easy-pill{background:var(--good);border-color:var(--good);}
+  button.pill.active.mid-pill{background:var(--gold);border-color:var(--gold);}
+  button.pill.active.hard-pill{background:var(--accent);border-color:var(--accent);}
+  button.pill.active.spot-pill{background:#5b4fcf;border-color:#5b4fcf;}
+  button.pill.active.unseen-pill{background:#4a7a8a;border-color:#4a7a8a;}
+  .filter-count{font-size:12px;color:var(--ink-soft);font-family:var(--display);
+    font-style:italic;margin-left:auto;white-space:nowrap;}
+  .tile.hidden{display:none !important;}
+  .toast{
+    position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:#fff; border-radius:14px;
+    padding:13px 20px 11px; max-width:min(92vw,380px); width:max-content;
+    text-align:center; z-index:60; pointer-events:none;
+    opacity:0; transition:opacity .22s ease, transform .28s cubic-bezier(.2,1.3,.5,1);
+    box-shadow:0 8px 28px -8px rgba(0,0,0,.55);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast .t-bird{font-family:var(--display);font-weight:700;font-size:17px;line-height:1.1;margin-bottom:3px;}
+  .toast .t-msg{font-family:var(--display);font-style:italic;font-size:13.5px;opacity:.88;line-height:1.3;}
+  .toast .t-emoji{font-size:26px;display:block;margin-bottom:4px;font-style:normal;}
+  @media print{.toast{display:none !important;}}
+
+  @media (max-width:560px){
+    h1{font-size:26px;} .latin{display:none;} .sheet{padding:18px 13px 22px;}
+  }
+  @page{size:A4 portrait;margin:9mm;}
+  @media print{
+    body{background:#fff;padding:0;} .sheet{border:none;box-shadow:none;border-radius:0;max-width:none;padding:0;}
+    .controls,.banner{display:none !important;}
+    .tile{break-inside:avoid;} h1{font-size:28px;} .grid{gap:8px;}
+    footer{flex-wrap:nowrap;} footer .rules{font-size:11.5px;}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+  .banner{background:#fff7f2;border:1px solid #f0cdb8;color:var(--accent-deep);
+    font-size:12.5px;border-radius:9px;padding:9px 12px;margin:14px 0 0;font-family:var(--display);font-style:italic;}
+
+
+  /* tabs */
+  .tabs{display:flex;gap:0;border-bottom:2px solid var(--ink);margin:20px 0 0;}
+  .tab-btn{font-family:var(--ui);font-size:14px;font-weight:700;border:0;
+    background:none;padding:10px 20px;cursor:pointer;color:var(--ink-soft);
+    border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;}
+  .tab-btn.active{color:var(--ink);border-bottom-color:var(--accent);}
+  .tab-btn:hover{color:var(--ink);}
+  .tab-panel{display:none;} .tab-panel.active{display:block;}
+  .controls-bar{display:flex;gap:10px;margin:14px 0 0;flex-wrap:wrap;align-items:center;}
+
+  /* map panel */
+  #mapPanel{padding:14px 0 0;}
+  #map{height:min(68vh,560px);border-radius:12px;overflow:hidden;
+    border:1.4px solid var(--line);background:#e8f0eb;display:block;}
+  .map-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    height:300px;color:var(--ink-soft);font-family:var(--display);font-style:italic;
+    font-size:15px;gap:10px;text-align:center;}
+  .map-empty .icon{font-size:42px;}
+
+  /* pin icons */
+  .bird-pin{background:var(--ink);color:#fff;border-radius:50% 50% 50% 0;
+    width:32px;height:32px;transform:rotate(-45deg);display:flex;
+    align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.35);
+    border:2px solid #fff;}
+  .bird-pin .emoji{transform:rotate(45deg);font-size:14px;line-height:1;}
+  .bird-pin.multi{background:var(--accent);}
+  .pin-count{position:absolute;top:-6px;right:-6px;background:var(--good);color:#fff;
+    border-radius:99px;font-size:10px;font-weight:800;padding:1px 5px;
+    transform:rotate(45deg);border:1.5px solid #fff;}
+
+  /* map popup */
+  .leaflet-popup-content-wrapper{border-radius:12px!important;
+    box-shadow:0 8px 24px rgba(0,0,0,.18)!important;padding:0!important;}
+  .leaflet-popup-content{margin:0!important;min-width:180px;}
+  .map-popup{padding:12px 14px;}
+  .map-popup .pop-loc{font-weight:700;font-size:13.5px;color:var(--ink);margin:0 0 6px;}
+  .map-popup .pop-bird{display:flex;align-items:center;gap:6px;
+    font-size:12.5px;color:var(--ink-soft);padding:3px 0;border-top:1px solid #eee;}
+  .map-popup .pop-bird:first-of-type{border-top:0;}
+  .map-popup .pop-date{font-size:11px;color:#aaa;margin-left:auto;}
+
+  /* map legend */
+  .map-legend{margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;font-size:12px;
+    color:var(--ink-soft);align-items:center;}
+  .map-legend .dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:4px;}
+
+  /* ── group progress panel ── */
+  .progress-panel{background:var(--paper);border:1.4px solid var(--line);
+    border-radius:12px;padding:13px 16px 11px;margin:10px 0 0;}
+  .prog-toggle{display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;user-select:none;}
+  .prog-toggle h3{font-family:var(--display);font-size:14px;font-weight:700;
+    color:var(--ink);margin:0;letter-spacing:.02em;}
+  .prog-toggle .chevron{font-size:11px;color:var(--ink-soft);transition:transform .2s;}
+  .prog-toggle.open .chevron{transform:rotate(180deg);}
+  .prog-body{overflow:hidden;max-height:0;transition:max-height .3s ease;}
+  .prog-body.open{max-height:400px;}
+  .prog-rows{display:flex;flex-direction:column;gap:7px;padding-top:11px;}
+  .prog-row{display:flex;align-items:center;gap:9px;cursor:pointer;}
+  .prog-row:hover .prog-label{color:var(--accent);}
+  .prog-label{font-size:12.5px;font-weight:600;width:148px;flex-shrink:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .prog-bar-wrap{flex:1;background:#dce8e1;border-radius:999px;height:7px;overflow:hidden;}
+  .prog-bar-fill{height:100%;border-radius:999px;background:var(--good);
+    transition:width .5s cubic-bezier(.2,.9,.5,1);}
+  .prog-pct{font-size:11.5px;color:var(--ink-soft);min-width:52px;
+    text-align:right;font-weight:700;}
+  .prog-total{font-size:11px;color:var(--ink-soft);min-width:36px;text-align:right;}
+  .prog-all-row{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);
+    display:flex;align-items:center;gap:9px;}
+  .prog-all-row .prog-label{color:var(--ink);font-size:13px;}
+
+  /* ── location bottom sheet ── */
+  .loc-overlay{position:fixed;inset:0;background:rgba(15,28,27,.55);
+    z-index:60;display:flex;align-items:flex-end;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .22s ease;}
+  .loc-overlay.open{opacity:1;pointer-events:all;}
+  .loc-sheet{background:var(--card);border-radius:22px 22px 0 0;padding:8px 22px 36px;
+    width:100%;max-width:600px;transform:translateY(100%);
+    transition:transform .3s cubic-bezier(.2,.9,.5,1);
+    box-shadow:0 -10px 40px rgba(22,59,58,.25);}
+  .loc-overlay.open .loc-sheet{transform:translateY(0);}
+  .loc-handle{width:40px;height:4px;background:var(--line);border-radius:99px;
+    margin:10px auto 16px;}
+  .loc-bird-name{font-family:var(--display);font-weight:700;font-size:20px;
+    margin:0 0 2px;color:var(--ink);}
+  .loc-auto{font-size:12.5px;color:var(--ink-soft);margin:0 0 14px;
+    font-family:var(--display);font-style:italic;}
+  .loc-input-wrap{position:relative;margin-bottom:10px;}
+  #locInput{width:100%;padding:11px 40px 11px 38px;border:1.5px solid var(--line);
+    border-radius:12px;font:inherit;font-size:15px;background:var(--card);
+    color:var(--ink);outline:none;transition:border-color .15s;box-sizing:border-box;}
+  #locInput:focus{border-color:var(--accent);}
+  .loc-detect-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+    width:30px;height:30px;border:0;background:none;cursor:pointer;font-size:18px;
+    color:var(--ink-soft);border-radius:50%;display:flex;align-items:center;justify-content:center;
+    transition:color .15s, transform .3s;}
+  .loc-detect-btn:hover{color:var(--accent);}
+  .loc-detect-btn.spinning{animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:translateY(-50%) rotate(360deg);}}
+  .loc-status{font-size:12px;color:var(--ink-soft);margin:-4px 0 10px;
+    font-family:var(--display);font-style:italic;min-height:16px;}
+  .loc-input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);
+    font-size:16px;pointer-events:none;}
+  .loc-last{font-size:12px;color:var(--ink-soft);margin-bottom:14px;
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .loc-last button{font-family:var(--ui);font-size:11.5px;border:1px solid var(--line);
+    background:var(--paper);border-radius:999px;padding:3px 9px;cursor:pointer;
+    color:var(--ink-soft);}
+  .loc-last button:hover{border-color:var(--ink);color:var(--ink);}
+  .loc-btns{display:flex;gap:9px;}
+  .loc-btns button{flex:1;font-family:var(--ui);font-size:14px;font-weight:700;
+    border:0;border-radius:12px;padding:13px;cursor:pointer;transition:all .13s;}
+  #locSave{background:var(--good);color:#fff;}
+  #locSave:hover{background:#2f6040;}
+  #locSkip{background:var(--paper);color:var(--ink-soft);}
+  #locSkip:hover{color:var(--ink);}
+
+  /* sighting badge in lightbox */
+  .lb-sighting{font-size:13px;color:rgba(255,255,255,.82);
+    font-family:var(--display);font-style:italic;text-align:center;}
+  .lb-sighting strong{font-style:normal;color:#fff;}
+
+  /* location tag on tile */
+  .tile-loc{font-size:10px;color:var(--ink-soft);font-style:italic;
+    margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:100%;padding:0 4px;}
+
+  /* hotspot recommendation pins */
+  .hot-pin{background:#1a7a6e;color:#fff;border-radius:50% 50% 50% 0;
+    width:30px;height:30px;transform:rotate(-45deg);display:flex;
+    align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.35);
+    border:2px solid #fff;position:relative;}
+  .hot-pin .emoji{transform:rotate(45deg);font-size:13px;line-height:1;}
+  .hot-pin .hot-count{position:absolute;top:-6px;right:-6px;background:#e8a020;
+    color:#fff;border-radius:99px;font-size:9px;font-weight:800;padding:1px 4px;
+    transform:rotate(45deg);border:1.5px solid #fff;white-space:nowrap;}
+  .hot-popup{padding:12px 14px;min-width:190px;max-width:250px;}
+  .hot-popup .pop-title{font-weight:700;font-size:13.5px;color:#163b3a;margin:0 0 4px;}
+  .hot-popup .pop-subtitle{font-size:11px;color:#7a9e96;margin:0 0 8px;font-style:italic;}
+  .hot-popup .pop-unseen{font-size:12px;font-weight:600;color:#1a7a6e;margin:0 0 4px;}
+  .hot-popup .pop-bird-list{font-size:11.5px;color:#3f5f5c;line-height:1.55;margin:0;}
+  /* map layer toggles */
+  .map-toggles{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px;}
+  .map-toggle{font-family:ui-sans-serif,system-ui,sans-serif;font-size:12.5px;font-weight:700;
+    border:1.5px solid #ccd7d1;background:#fbfcfb;color:#3f5f5c;
+    padding:7px 13px;border-radius:999px;cursor:pointer;transition:all .15s;display:flex;gap:5px;align-items:center;}
+  .map-toggle.on{border-color:#163b3a;color:#163b3a;}
+  .map-toggle.on.sightings-toggle{background:#163b3a;color:#fff;}
+  .map-toggle.on.hotspot-toggle{background:#1a7a6e;color:#fff;border-color:#1a7a6e;}
+  .map-info{font-size:12px;color:#3f5f5c;font-style:italic;font-family:Georgia,serif;margin-left:auto;align-self:center;}
+
+
+  /* user identity */
+  .user-bar{display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;}
+  .user-pill{display:inline-flex;align-items:center;gap:6px;background:var(--paper);
+    border:1.4px solid var(--line);border-radius:999px;padding:5px 12px 5px 8px;
+    font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;transition:all .15s;}
+  .user-pill:hover{border-color:var(--accent);color:var(--accent);}
+  .user-avatar{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;}
+  .sync-status{font-size:11px;font-family:var(--display);font-style:italic;
+    color:var(--ink-soft);display:flex;align-items:center;gap:5px;}
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:#ccc;flex-shrink:0;
+    transition:background .3s;}
+  .sync-dot.ok{background:var(--good);}
+  .sync-dot.busy{background:var(--gold);animation:pulse .8s ease infinite;}
+  .sync-dot.err{background:var(--accent);}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  /* spotted-by tag on tile */
+  .tile-spotter{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:999px;
+    color:#fff;margin-top:3px;display:inline-block;}
+  /* who-are-you modal */
+  .who-overlay{position:fixed;inset:0;background:rgba(15,28,27,.7);z-index:80;
+    display:flex;align-items:center;justify-content:center;padding:20px;}
+  .who-box{background:var(--card);border-radius:18px;padding:30px 26px 26px;
+    max-width:380px;width:100%;box-shadow:0 20px 60px -20px rgba(0,0,0,.5);}
+  .who-box h2{font-family:var(--display);font-size:24px;margin:0 0 6px;}
+  .who-box p{font-family:var(--display);font-style:italic;color:var(--ink-soft);
+    font-size:14px;margin:0 0 20px;}
+  .who-names{display:flex;flex-direction:column;gap:10px;}
+  .who-input{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;
+    font:inherit;font-size:16px;outline:none;transition:border-color .15s;box-sizing:border-box;}
+  .who-input:focus{border-color:var(--accent);}
+  .who-btn{width:100%;padding:14px;border:0;border-radius:12px;background:var(--ink);
+    color:#fff;font:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;}
+  .who-btn:hover{background:#0f2d2c;}
+
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header>
+    <div>
+      <p class="eyebrow">Life List · Great Britain & Ireland</p>
+      <h1>UK Bird Tracker</h1>
+      <p class="sub">Tap a bird the moment you see it — sightings sync between both spotters.</p>
+      <div class="user-bar">
+        <div class="user-pill" id="userPill" onclick="promptWho()">
+          <div class="user-avatar" id="userAvatar" style="background:#ccc">?</div>
+          <span id="userName">Choose name</span>
+        </div>
+        <div class="sync-status">
+          <div class="sync-dot" id="syncDot"></div>
+          <span id="syncMsg">Not synced</span>
+        </div>
+      </div>
+    </div>
+    <div class="players">
+      <div class="line"><b>Spotter 1</b><span class="rule"></span></div>
+      <div class="line"><b>Spotter 2</b><span class="rule"></span></div>
+    </div>
+  </header>
+
+  <div class="banner" id="banner">Loading bird photos from Wikimedia… if they don't appear, open this file in a web browser with an internet connection.</div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="list">📋 Life List</button>
+    <button class="tab-btn" data-tab="map">🗺️ Map</button>
+  </div>
+
+  <div class="tab-panel active" id="listPanel">
+
+    <div class="progress-panel">
+    <div class="prog-toggle" id="progToggle">
+      <h3>📊 Progress by group</h3>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="prog-body" id="progBody">
+      <div class="prog-rows" id="progRows"></div>
+    </div>
+  </div>
+
+    <div class="filters">
+      <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="#163b3a" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="#163b3a" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input type="search" id="search" placeholder="Search 316 birds…" autocomplete="off" spellcheck="false">
+    </div>
+      <div class="filter-row">
+      <span class="label">Group</span>
+      <div class="pill-group" id="grp-pills">
+        <button class="pill active" data-grp="all">All</button>
+        <button class="pill" data-grp="water">🦆 Waterfowl</button>
+        <button class="pill" data-grp="wader">🐦 Waders</button>
+        <button class="pill" data-grp="sea">⛵ Seabirds</button>
+        <button class="pill" data-grp="heron">🦢 Herons &amp; Rails</button>
+        <button class="pill" data-grp="raptor">🦅 Raptors &amp; Owls</button>
+        <button class="pill" data-grp="game">🕊️ Gamebirds &amp; Doves</button>
+        <button class="pill" data-grp="garden">🌿 Garden &amp; Woodland</button>
+      </div>
+    </div>
+      <div class="filter-row">
+      <span class="label">Difficulty</span>
+      <div class="pill-group">
+        <button class="pill active" data-rar="all">All</button>
+        <button class="pill easy-pill" data-rar="easy">Easy</button>
+        <button class="pill mid-pill" data-rar="mid">Likely</button>
+        <button class="pill hard-pill" data-rar="hard">A Treat</button>
+      </div>
+      <span class="label" style="margin-left:12px">Status</span>
+      <div class="pill-group">
+        <button class="pill active" data-spot="all">All</button>
+        <button class="pill spot-pill" data-spot="spotted">Spotted ✓</button>
+        <button class="pill unseen-pill" data-spot="unseen">Not yet</button>
+      </div>
+      <span class="filter-count" id="filter-count"></span>
+    </div>
+    </div><!-- end .filters -->
+
+    <div class="controls-bar">
+      <button class="ctrl primary" onclick="window.print()">Print card</button>
+      <button class="ctrl" id="shuffleBtn">Shuffle</button>
+      <button class="ctrl" id="resetBtn">Reset ticks</button>
+      <span class="hint">Tap any bird · <span class="count" id="count">0</span> / <span id="total">316</span> spotted</span>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+  </div>
+
+  <div class="tab-panel" id="mapPanel">
+    <div class="map-toggles">
+      <button class="map-toggle sightings-toggle on" id="toggleSightings">📍 My sightings</button>
+      <button class="map-toggle hotspot-toggle on" id="toggleHotspots">🔭 Recommended spots</button>
+      <span class="map-info" id="mapInfo"></span>
+    </div>
+    <div id="mapPlaceholder" class="map-empty" style="display:none">
+      <div class="icon">🗺️</div>
+      <div>Open in Safari or Chrome while online to load the map</div>
+    </div>
+    <div id="map"></div>
+    <div class="map-legend" id="mapLegend">
+      <span><span class="dot" style="background:var(--ink)"></span>Your sightings</span>
+      <span><span class="dot" style="background:var(--accent)"></span>Multiple species</span>
+      <span><span class="dot" style="background:#1a7a6e"></span>Recommended spots</span>
+      <span><span class="dot" style="background:#e8a020"></span>Bird count</span>
+    </div>
+  </div>
+
+  <footer>
+    <div>
+      <div class="rules">Tap any bird to log a sighting — it saves automatically to this device. Tap again to un-tick. Use Shuffle to reorder and Reset to clear all sightings.</div>
+      <div class="key">
+        <span><i style="background:var(--good)"></i>Easy</span>
+        <span><i style="background:var(--gold)"></i>Likely</span>
+        <span><i style="background:var(--accent)"></i>A treat</span>
+      </div>
+    </div>
+    <div class="date">
+      <span style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--ink)">Date of outing</span>
+      <span class="rule"></span>
+      <span style="font-size:11px">Lakes visited: __________</span>
+    </div>
+  </footer>
+
+</div>
+
+<div class="who-overlay" id="whoOverlay" style="display:none">
+  <div class="who-box">
+    <h2>🐦 Who are you?</h2>
+    <p>Enter your name so your sightings show up correctly for both spotters.</p>
+    <div class="who-names">
+      <input class="who-input" id="whoInput" placeholder="Your name (e.g. Sarah)" maxlength="30" autocomplete="off">
+      <button class="who-btn" id="whoBtn">Start spotting →</button>
+    </div>
+  </div>
+</div>
+<div class="loc-overlay" id="locOverlay">
+  <div class="loc-sheet" id="locSheet">
+    <div class="loc-handle"></div>
+    <p class="loc-bird-name" id="locBirdName"></p>
+    <p class="loc-auto" id="locAutoInfo"></p>
+    <div class="loc-input-wrap">
+      <span class="loc-input-icon">📍</span>
+      <input type="text" id="locInput" placeholder="Detecting location…" autocomplete="off">
+      <button class="loc-detect-btn" id="locDetectBtn" title="Detect location">↺</button>
+    </div>
+    <p class="loc-status" id="locStatus"></p>
+    <div class="loc-last" id="locLast"></div>
+    <div class="loc-btns">
+      <button id="locSave">Log sighting</button>
+      <button id="locSkip">Skip location</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---- SVG fallback illustrations (used if a photo can't load) ---- */
+const A = {
+  swan:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 64 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2.2" opacity=".7"/><path d="M18 60 q-3 -23 24 -25 q24 -1 32 9 q7 9 2 17 q-22 6 -58 -1Z" fill="#fdfdfb" stroke="#163b3a" stroke-width="1.7"/><path d="M70 48 q-8 -16 4 -30 q7 -8 16 -4 l-2 5 q-9 -2 -13 5 q-8 13 0 26Z" fill="#fdfdfb" stroke="#163b3a" stroke-width="1.5"/><ellipse cx="89" cy="13" rx="7.5" ry="6" fill="#fdfdfb" stroke="#163b3a" stroke-width="1.5"/><path d="M95 12 l10 2 -9 5Z" fill="#e08a2c" stroke="#163b3a" stroke-width="1"/><path d="M93 9 q4 -2 4 3 l-4 0Z" fill="#1b1b1b"/><circle cx="90" cy="12" r="1.2" fill="#163b3a"/></svg>`,
+  mallard:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 62 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2.2" opacity=".7"/><path d="M16 56 q-2 -16 22 -19 q20 -2 30 4 q10 5 14 4 q-2 7 -10 9 q-26 8 -56 2Z" fill="#9aa39c" stroke="#163b3a" stroke-width="1.6"/><path d="M30 41 q14 -7 30 -3 q-3 6 -14 8 q-12 1 -16 -5Z" fill="#6d4a30" stroke="#163b3a" stroke-width="1.2"/><path d="M66 30 q-2 -14 14 -16 q12 -1 14 8 q-2 7 -14 10 q-10 2 -14 -2Z" fill="#1f7a4d" stroke="#163b3a" stroke-width="1.5"/><path d="M92 22 l11 2 -10 5Z" fill="#e2b531" stroke="#163b3a" stroke-width="1"/><circle cx="84" cy="18" r="1.4" fill="#0d0d0d"/></svg>`,
+  goose:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 64 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2.2" opacity=".7"/><path d="M14 58 q-2 -18 24 -21 q24 -2 34 6 q9 6 12 5 q-3 8 -13 10 q-30 8 -57 -0Z" fill="#9a7c54" stroke="#163b3a" stroke-width="1.6"/><path d="M70 50 q-4 -20 8 -34 q5 -6 11 -5 q4 0 5 4 q-9 1 -12 8 q-7 16 -4 30Z" fill="#1c1c1c" stroke="#163b3a" stroke-width="1.3"/><ellipse cx="88" cy="11" rx="7" ry="6" fill="#1c1c1c" stroke="#163b3a" stroke-width="1.2"/><path d="M82 11 q6 -3 10 1 q-4 3 -10 1Z" fill="#fff"/><path d="M94 10 l9 1 -8 5Z" fill="#1c1c1c" stroke="#163b3a" stroke-width=".8"/></svg>`,
+  coot:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 62 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2.2" opacity=".7"/><path d="M16 56 q-2 -16 24 -18 q24 -2 32 4 q8 5 11 4 q-2 7 -11 9 q-28 7 -56 1Z" fill="#2b2f31" stroke="#163b3a" stroke-width="1.5"/><path d="M68 46 q-4 -16 6 -27 q4 -5 9 -4 q3 1 2 4 q-7 1 -9 7 q-4 11 0 22Z" fill="#1d2123" stroke="#163b3a" stroke-width="1.2"/><ellipse cx="85" cy="17" rx="6.5" ry="5.5" fill="#1d2123" stroke="#163b3a" stroke-width="1.1"/><path d="M90 14 l9 2 -9 4Z" fill="#f4f4f0" stroke="#163b3a" stroke-width=".9"/><path d="M86 11 q4 -1 4 4 l-5 0Z" fill="#f4f4f0"/></svg>`,
+  moorhen:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 62 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2.2" opacity=".7"/><path d="M16 56 q-2 -16 24 -18 q24 -2 32 4 q8 5 11 4 q-2 7 -11 9 q-28 7 -56 1Z" fill="#2f3a3d" stroke="#163b3a" stroke-width="1.5"/><path d="M22 54 q10 -3 14 0 q-2 4 -7 5 q-6 0 -7 -5Z" fill="#f4f4f0"/><path d="M68 46 q-4 -16 6 -27 q4 -5 9 -4 q3 1 2 4 q-7 1 -9 7 q-4 11 0 22Z" fill="#22090d" stroke="#163b3a" stroke-width="1.2"/><ellipse cx="85" cy="17" rx="6.5" ry="5.5" fill="#22090d" stroke="#163b3a" stroke-width="1.1"/><path d="M85 11 q4 -1 4 4 l-5 0Z" fill="#c4262a"/><path d="M90 13 l9 1 -8 5Z" fill="#e2b531" stroke="#163b3a" stroke-width=".8"/></svg>`,
+  grebe:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 60 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2.2" opacity=".7"/><path d="M14 54 q-2 -13 22 -15 q24 -2 34 3 q8 4 11 3 q-2 6 -11 8 q-30 7 -56 -2Z" fill="#caa77f" stroke="#163b3a" stroke-width="1.5"/><path d="M70 50 q-5 -20 4 -33 q4 -6 9 -5 q3 0 3 4 q-6 1 -8 7 q-5 14 -1 28Z" fill="#f3f1ec" stroke="#163b3a" stroke-width="1.3"/><ellipse cx="84" cy="13" rx="6.5" ry="5.5" fill="#f3f1ec" stroke="#163b3a" stroke-width="1.2"/><path d="M80 8 q-4 -5 1 -6 q3 4 3 7Z" fill="#1c1c1c"/><path d="M88 8 q5 -5 1 -6 q-3 4 -3 7Z" fill="#1c1c1c"/><path d="M80 16 q-3 5 1 8 q5 -1 4 -7Z" fill="#9c4a25"/><path d="M89 12 l10 1 -9 4Z" fill="#e6b9a2" stroke="#163b3a" stroke-width=".8"/></svg>`,
+  tufted:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 62 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2.2" opacity=".7"/><path d="M16 56 q-2 -15 24 -17 q24 -2 32 4 q8 4 11 3 q-2 7 -11 9 q-28 7 -56 1Z" fill="#f1f2ee" stroke="#163b3a" stroke-width="1.5"/><path d="M16 50 q-2 -9 24 -11 q22 -2 32 2 q-26 9 -56 9Z" fill="#22282a" stroke="#163b3a" stroke-width="1.1"/><path d="M66 30 q-2 -12 14 -14 q11 -1 12 7 q-1 6 -12 9 q-10 2 -14 -2Z" fill="#1d2224" stroke="#163b3a" stroke-width="1.4"/><path d="M68 19 q4 -8 0 -11 q-5 4 -3 11Z" fill="#1d2224" stroke="#163b3a" stroke-width="1.1"/><path d="M90 24 l11 2 -10 4Z" fill="#9fb1c2" stroke="#163b3a" stroke-width="1"/><circle cx="82" cy="20" r="1.6" fill="#e2b531"/><circle cx="82" cy="20" r=".7" fill="#0d0d0d"/></svg>`,
+  heron:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 66 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2" opacity=".6"/><path d="M30 60 q-4 -22 18 -26 q16 -2 22 4 q-2 10 -14 14 q-14 6 -26 8Z" fill="#b9c2c6" stroke="#163b3a" stroke-width="1.6"/><path d="M40 60 l-2 16 M48 60 l2 16" stroke="#caa15f" stroke-width="1.8" fill="none"/><path d="M64 40 q-12 -8 -6 -22 q3 -8 10 -10 q-4 12 0 20 q3 7 4 14Z" fill="#cdd5d8" stroke="#163b3a" stroke-width="1.4"/><path d="M64 12 q4 -6 12 -6 q5 0 6 4 q-8 0 -12 5 q-3 4 -3 9Z" fill="#dde3e5" stroke="#163b3a" stroke-width="1.3"/><path d="M68 8 q9 -2 13 1" stroke="#1c1c1c" stroke-width="1.6" fill="none"/><path d="M81 9 l12 2 -12 3Z" fill="#e2b531" stroke="#163b3a" stroke-width=".9"/><circle cx="76" cy="9" r="1.2" fill="#e2b531"/></svg>`,
+  egret:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 66 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2" opacity=".6"/><path d="M30 60 q-4 -22 18 -26 q16 -2 22 4 q-2 10 -14 14 q-14 6 -26 8Z" fill="#fdfdfb" stroke="#163b3a" stroke-width="1.6"/><path d="M40 60 l-2 16 M48 60 l2 16" stroke="#1c1c1c" stroke-width="1.8" fill="none"/><path d="M39 76 l5 0 M47 76 l5 0" stroke="#e2b531" stroke-width="2.2" fill="none"/><path d="M64 40 q-12 -8 -6 -22 q3 -8 10 -10 q-4 12 0 20 q3 7 4 14Z" fill="#fdfdfb" stroke="#163b3a" stroke-width="1.4"/><path d="M64 12 q4 -6 12 -6 q5 0 6 4 q-8 0 -12 5 q-3 4 -3 9Z" fill="#fdfdfb" stroke="#163b3a" stroke-width="1.3"/><path d="M81 9 l12 1 -12 4Z" fill="#1c1c1c" stroke="#163b3a" stroke-width=".9"/></svg>`,
+  cormorant:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 66 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2" opacity=".6"/><path d="M50 58 q-22 -2 -30 -16 q-3 -6 2 -7 q8 8 22 9 q-6 -10 4 -14 q-2 9 8 13 q14 3 22 13 q-12 4 -28 2Z" fill="#23312f" stroke="#163b3a" stroke-width="1.5"/><path d="M50 60 q4 -22 4 -34 q0 -8 5 -10 q3 1 2 5 q-4 6 -3 16 q0 12 -2 23Z" fill="#2c3a38" stroke="#163b3a" stroke-width="1.3"/><path d="M57 18 q3 -8 11 -8 q4 0 4 4 q-7 0 -10 6 q-3 4 -3 9Z" fill="#22302e" stroke="#163b3a" stroke-width="1.3"/><path d="M71 13 l11 0 -10 5Z" fill="#d8c27a" stroke="#163b3a" stroke-width=".9"/></svg>`,
+  bhgull:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 64 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2.2" opacity=".7"/><path d="M16 56 q-2 -14 24 -16 q26 -2 36 4 q9 5 12 4 q-3 7 -12 9 q-32 7 -60 -1Z" fill="#fbfcfa" stroke="#163b3a" stroke-width="1.5"/><path d="M18 50 q18 -10 44 -6 q-8 -7 -22 -6 q-16 1 -22 12Z" fill="#aab6bc" stroke="#163b3a" stroke-width="1.1"/><path d="M66 32 q-2 -12 14 -13 q11 -1 12 6 q-2 7 -13 9 q-9 1 -13 -2Z" fill="#5b4636" stroke="#163b3a" stroke-width="1.4"/><path d="M90 24 l11 2 -10 4Z" fill="#c4262a" stroke="#163b3a" stroke-width=".9"/></svg>`,
+  gadwall:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 62 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2.2" opacity=".7"/><path d="M14 56 q-2 -15 24 -17 q22 -2 28 2 q-2 8 -14 12 q4 -8 -2 -10 q-22 4 -36 13Z" fill="#9a958c" stroke="#163b3a" stroke-width="1.5"/><path d="M52 50 q12 -2 20 2 q3 2 6 1 q-2 6 -10 7 q-12 1 -18 -3 q3 -4 2 -7Z" fill="#1f1f1f" stroke="#163b3a" stroke-width="1.3"/><path d="M66 32 q-2 -12 14 -14 q11 -1 12 7 q-1 6 -12 9 q-10 2 -14 -2Z" fill="#857a6e" stroke="#163b3a" stroke-width="1.4"/><path d="M90 26 l11 1 -10 5Z" fill="#23282a" stroke="#163b3a" stroke-width=".9"/></svg>`,
+  lapwing:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M4 62 q9 -4 18 0 t18 0 t18 0 t18 0 t12 0" fill="none" stroke="#9fc0bf" stroke-width="2.2" opacity=".7"/><path d="M18 56 q-2 -15 24 -17 q22 -2 30 3 q7 4 10 3 q-1 7 -10 9 q-28 8 -54 -1Z" fill="#21433a" stroke="#163b3a" stroke-width="1.5"/><path d="M22 56 q12 -2 22 0 q-2 5 -11 6 q-9 0 -11 -6Z" fill="#fbfcfa"/><path d="M66 30 q-2 -12 13 -13 q10 -1 11 6 q-1 6 -11 9 q-9 1 -13 -2Z" fill="#16201d" stroke="#163b3a" stroke-width="1.4"/><path d="M76 18 q8 -14 4 -16 q-7 4 -8 15Z" fill="#16201d" stroke="#163b3a" stroke-width="1.1"/><path d="M88 24 l9 1 -8 4Z" fill="#1c1c1c" stroke="#163b3a" stroke-width=".8"/></svg>`,
+  tern:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M14 48 q-2 -8 22 -10 q24 -2 34 3 q-4 7 -16 13 q-6 -2 -6 -8 q-18 7 -34 2Z" fill="#fbfcfa" stroke="#163b3a" stroke-width="1.5"/><path d="M14 48 q14 -16 40 -16 q-2 5 -10 9 q-16 9 -30 7Z" fill="#bcc6cb" stroke="#163b3a" stroke-width="1.1"/><path d="M16 49 l-12 18 M22 50 l-8 18" stroke="#fbfcfa" stroke-width="2.4"/><path d="M66 23 q4 -8 16 -9 q-4 6 -5 9 q-6 2 -11 0Z" fill="#1c1c1c" stroke="#163b3a" stroke-width="1.1"/><path d="M80 18 l12 1 -11 5Z" fill="#d8533a" stroke="#163b3a" stroke-width=".9"/><circle cx="74" cy="20" r="1.1" fill="#0d0d0d"/></svg>`,
+  reedbunting:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M30 70 q2 -22 0 -40" stroke="#7d6a3a" stroke-width="2.4" fill="none"/><path d="M30 34 q6 -10 14 -12 M30 40 q8 -8 16 -8" stroke="#9caa55" stroke-width="2" fill="none"/><path d="M34 52 q-3 -12 14 -16 q14 -3 22 3 q5 4 8 3 q-2 6 -10 8 q-14 8 -28 6 q-4 -1 -6 -7Z" fill="#8a7344" stroke="#163b3a" stroke-width="1.5"/><path d="M62 30 q-2 -10 12 -11 q9 -1 10 5 q-1 6 -10 8 q-9 1 -12 -2Z" fill="#1c1c1c" stroke="#163b3a" stroke-width="1.4"/><path d="M62 33 q3 3 8 3 q-1 -5 1 -8 q-6 1 -9 5Z" fill="#fbfcfa"/><path d="M71 33 q8 2 13 -1" stroke="#fbfcfa" stroke-width="1.6" fill="none"/><path d="M83 24 l9 1 -8 4Z" fill="#33373a" stroke="#163b3a" stroke-width=".8"/></svg>`,
+  kingfisher:`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><path d="M22 66 q18 -2 30 -10" stroke="#7d6a4a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M40 56 q-6 -3 -4 -12 q2 -10 16 -14 q14 -3 22 2 q6 4 9 3 q-2 6 -10 8 q-4 8 -14 12 q-10 4 -19 1Z" fill="#15a0c4" stroke="#163b3a" stroke-width="1.5"/><path d="M44 56 q8 6 18 6 q4 0 6 -2 q-4 8 -14 7 q-8 -1 -10 -11Z" fill="#d4632b" stroke="#163b3a" stroke-width="1.2"/><path d="M66 28 q-2 -9 13 -10 q10 -1 11 5 q-1 6 -11 8 q-9 1 -13 -3Z" fill="#16a0c4" stroke="#163b3a" stroke-width="1.4"/><path d="M88 22 l13 0 -12 5Z" fill="#1c1c1c" stroke="#163b3a" stroke-width=".9"/><circle cx="81" cy="20" r="1.3" fill="#0d0d0d"/></svg>`
+};
+
+/* generic bird silhouette used for any extra birds without a custom SVG */
+const GENERIC=`<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg"><ellipse cx="52" cy="48" rx="26" ry="16" fill="#8a9e96" stroke="#163b3a" stroke-width="1.5"/><path d="M68 42 q-2 -14 10 -18 q8 -2 10 4 q-8 1 -10 8 q-3 8 0 18Z" fill="#6b7e78" stroke="#163b3a" stroke-width="1.3"/><ellipse cx="79" cy="23" rx="7" ry="5.5" fill="#7a8f89" stroke="#163b3a" stroke-width="1.2"/><path d="M85 21 l11 1 -10 4Z" fill="#d4a840" stroke="#163b3a" stroke-width=".8"/><circle cx="82" cy="21" r="1.1" fill="#0d0d0d"/><path d="M26 54 q-10 2 -16 -2" stroke="#163b3a" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>`;
+
+const ALL_BIRDS = [
+  {n:"Brent Goose",l:"Branta bernicla",w:"Brent goose",r:"mid",g:"water",a:GENERIC},
+  {n:"Red-breasted Goose",l:"Branta ruficollis",w:"Red-breasted goose",r:"hard",g:"water",a:GENERIC},
+  {n:"Canada Goose",l:"Branta canadensis",w:"Canada goose",r:"easy",g:"water",a:GENERIC},
+  {n:"Barnacle Goose",l:"Branta leucopsis",w:"Barnacle goose",r:"mid",g:"water",a:GENERIC},
+  {n:"Cackling Goose",l:"Branta hutchinsii",w:"Cackling goose",r:"hard",g:"water",a:GENERIC},
+  {n:"Snow Goose",l:"Anser caerulescens",w:"Snow goose",r:"hard",g:"water",a:GENERIC},
+  {n:"Greylag Goose",l:"Anser anser",w:"Greylag goose",r:"easy",g:"water",a:GENERIC},
+  {n:"Taiga Bean Goose",l:"Anser fabalis",w:"Taiga bean goose",r:"hard",g:"water",a:GENERIC},
+  {n:"Pink-footed Goose",l:"Anser brachyrhynchus",w:"Pink-footed goose",r:"mid",g:"water",a:GENERIC},
+  {n:"Tundra Bean Goose",l:"Anser serrirostris",w:"Tundra bean goose",r:"hard",g:"water",a:GENERIC},
+  {n:"White-fronted Goose",l:"Anser albifrons",w:"Greater white-fronted goose",r:"mid",g:"water",a:GENERIC},
+  {n:"Lesser White-fronted Goose",l:"Anser erythropus",w:"Lesser white-fronted goose",r:"hard",g:"water",a:GENERIC},
+  {n:"Mute Swan",l:"Cygnus olor",w:"Mute swan",r:"easy",g:"water",a:GENERIC},
+  {n:"Bewick\'s Swan",l:"Cygnus columbianus",w:"Tundra swan",r:"mid",g:"water",a:GENERIC},
+  {n:"Whooper Swan",l:"Cygnus cygnus",w:"Whooper swan",r:"mid",g:"water",a:GENERIC},
+  {n:"Egyptian Goose",l:"Alopochen aegyptiaca",w:"Egyptian goose",r:"easy",g:"water",a:GENERIC},
+  {n:"Shelduck",l:"Tadorna tadorna",w:"Common shelduck",r:"easy",g:"water",a:GENERIC},
+  {n:"Mandarin Duck",l:"Aix galericulata",w:"Mandarin duck",r:"mid",g:"water",a:GENERIC},
+  {n:"Garganey",l:"Spatula querquedula",w:"Garganey",r:"hard",g:"water",a:GENERIC},
+  {n:"Shoveler",l:"Spatula clypeata",w:"Northern shoveler",r:"mid",g:"water",a:GENERIC},
+  {n:"Gadwall",l:"Mareca strepera",w:"Gadwall",r:"mid",g:"water",a:GENERIC},
+  {n:"Wigeon",l:"Mareca penelope",w:"Eurasian wigeon",r:"mid",g:"water",a:GENERIC},
+  {n:"American Wigeon",l:"Mareca americana",w:"American wigeon",r:"hard",g:"water",a:GENERIC},
+  {n:"Mallard",l:"Anas platyrhynchos",w:"Mallard",r:"easy",g:"water",a:GENERIC},
+  {n:"Pintail",l:"Anas acuta",w:"Northern pintail",r:"mid",g:"water",a:GENERIC},
+  {n:"Teal",l:"Anas crecca",w:"Eurasian teal",r:"mid",g:"water",a:GENERIC},
+  {n:"Green-winged Teal",l:"Anas carolinensis",w:"Green-winged teal",r:"hard",g:"water",a:GENERIC},
+  {n:"Red-crested Pochard",l:"Netta rufina",w:"Red-crested pochard",r:"hard",g:"water",a:GENERIC},
+  {n:"Pochard",l:"Aythya ferina",w:"Common pochard",r:"mid",g:"water",a:GENERIC},
+  {n:"Ferruginous Duck",l:"Aythya nyroca",w:"Ferruginous duck",r:"hard",g:"water",a:GENERIC},
+  {n:"Ring-necked Duck",l:"Aythya collaris",w:"Ring-necked duck",r:"hard",g:"water",a:GENERIC},
+  {n:"Tufted Duck",l:"Aythya fuligula",w:"Tufted duck",r:"mid",g:"water",a:GENERIC},
+  {n:"Scaup",l:"Aythya marila",w:"Greater scaup",r:"mid",g:"water",a:GENERIC},
+  {n:"Eider",l:"Somateria mollissima",w:"Common eider",r:"mid",g:"water",a:GENERIC},
+  {n:"King Eider",l:"Somateria spectabilis",w:"King eider",r:"hard",g:"water",a:GENERIC},
+  {n:"Surf Scoter",l:"Melanitta perspicillata",w:"Surf scoter",r:"hard",g:"water",a:GENERIC},
+  {n:"Velvet Scoter",l:"Melanitta fusca",w:"White-winged scoter",r:"hard",g:"water",a:GENERIC},
+  {n:"Common Scoter",l:"Melanitta nigra",w:"Black scoter",r:"mid",g:"water",a:GENERIC},
+  {n:"Long-tailed Duck",l:"Clangula hyemalis",w:"Long-tailed duck",r:"hard",g:"water",a:GENERIC},
+  {n:"Goldeneye",l:"Bucephala clangula",w:"Common goldeneye",r:"mid",g:"water",a:GENERIC},
+  {n:"Smew",l:"Mergellus albellus",w:"Smew",r:"hard",g:"water",a:GENERIC},
+  {n:"Goosander",l:"Mergus merganser",w:"Common merganser",r:"mid",g:"water",a:GENERIC},
+  {n:"Red-breasted Merganser",l:"Mergus serrator",w:"Red-breasted merganser",r:"mid",g:"water",a:GENERIC},
+  {n:"Red Grouse",l:"Lagopus scotica",w:"Red grouse",r:"mid",g:"game",a:GENERIC},
+  {n:"Ptarmigan",l:"Lagopus muta",w:"Rock ptarmigan",r:"hard",g:"game",a:GENERIC},
+  {n:"Capercaillie",l:"Tetrao urogallus",w:"Western capercaillie",r:"hard",g:"game",a:GENERIC},
+  {n:"Black Grouse",l:"Lyrurus tetrix",w:"Black grouse",r:"hard",g:"game",a:GENERIC},
+  {n:"Grey Partridge",l:"Perdix perdix",w:"Grey partridge",r:"mid",g:"game",a:GENERIC},
+  {n:"Pheasant",l:"Phasianus colchicus",w:"Common pheasant",r:"easy",g:"game",a:GENERIC},
+  {n:"Quail",l:"Coturnix coturnix",w:"Common quail",r:"hard",g:"game",a:GENERIC},
+  {n:"Red-legged Partridge",l:"Alectoris rufa",w:"Red-legged partridge",r:"easy",g:"game",a:GENERIC},
+  {n:"Great Bustard",l:"Otis tarda",w:"Great bustard",r:"hard",g:"game",a:GENERIC},
+  {n:"Nightjar",l:"Caprimulgus europaeus",w:"European nightjar",r:"hard",g:"game",a:GENERIC},
+  {n:"Alpine Swift",l:"Tachymarptis melba",w:"Alpine swift",r:"hard",g:"game",a:GENERIC},
+  {n:"Swift",l:"Apus apus",w:"Common swift",r:"mid",g:"game",a:GENERIC},
+  {n:"Cuckoo",l:"Cuculus canorus",w:"Common cuckoo",r:"mid",g:"game",a:GENERIC},
+  {n:"Feral Pigeon",l:"Columba livia",w:"Rock dove",r:"easy",g:"game",a:GENERIC},
+  {n:"Stock Dove",l:"Columba oenas",w:"Stock dove",r:"easy",g:"game",a:GENERIC},
+  {n:"Wood Pigeon",l:"Columba palumbus",w:"Common wood pigeon",r:"easy",g:"game",a:GENERIC},
+  {n:"Turtle Dove",l:"Streptopelia turtur",w:"European turtle dove",r:"hard",g:"game",a:GENERIC},
+  {n:"Collared Dove",l:"Streptopelia decaocto",w:"Eurasian collared dove",r:"easy",g:"game",a:GENERIC},
+  {n:"Ring-necked Parakeet",l:"Psittacula krameri",w:"Rose-ringed parakeet",r:"easy",g:"game",a:GENERIC},
+  {n:"Stone-curlew",l:"Burhinus oedicnemus",w:"Eurasian stone-curlew",r:"hard",g:"wader",a:GENERIC},
+  {n:"Black-winged Stilt",l:"Himantopus himantopus",w:"Black-winged stilt",r:"hard",g:"wader",a:GENERIC},
+  {n:"Avocet",l:"Recurvirostra avosetta",w:"Pied avocet",r:"hard",g:"wader",a:GENERIC},
+  {n:"Oystercatcher",l:"Haematopus ostralegus",w:"Eurasian oystercatcher",r:"mid",g:"wader",a:GENERIC},
+  {n:"Grey Plover",l:"Pluvialis squatarola",w:"Grey plover",r:"mid",g:"wader",a:GENERIC},
+  {n:"Golden Plover",l:"Pluvialis apricaria",w:"European golden plover",r:"mid",g:"wader",a:GENERIC},
+  {n:"American Golden Plover",l:"Pluvialis dominica",w:"American golden plover",r:"hard",g:"wader",a:GENERIC},
+  {n:"Dotterel",l:"Eudromias morinellus",w:"Eurasian dotterel",r:"hard",g:"wader",a:GENERIC},
+  {n:"Ringed Plover",l:"Charadrius hiaticula",w:"Common ringed plover",r:"mid",g:"wader",a:GENERIC},
+  {n:"Little Ringed Plover",l:"Thinornis dubius",w:"Little ringed plover",r:"mid",g:"wader",a:GENERIC},
+  {n:"Lapwing",l:"Vanellus vanellus",w:"Northern lapwing",r:"mid",g:"wader",a:GENERIC},
+  {n:"Kentish Plover",l:"Anarhynchus alexandrinus",w:"Kentish plover",r:"hard",g:"wader",a:GENERIC},
+  {n:"Whimbrel",l:"Numenius phaeopus",w:"Whimbrel",r:"mid",g:"wader",a:GENERIC},
+  {n:"Curlew",l:"Numenius arquata",w:"Eurasian curlew",r:"mid",g:"wader",a:GENERIC},
+  {n:"Bar-tailed Godwit",l:"Limosa lapponica",w:"Bar-tailed godwit",r:"mid",g:"wader",a:GENERIC},
+  {n:"Black-tailed Godwit",l:"Limosa limosa",w:"Black-tailed godwit",r:"mid",g:"wader",a:GENERIC},
+  {n:"Turnstone",l:"Arenaria interpres",w:"Ruddy turnstone",r:"mid",g:"wader",a:GENERIC},
+  {n:"Knot",l:"Calidris canutus",w:"Red knot",r:"mid",g:"wader",a:GENERIC},
+  {n:"Ruff",l:"Calidris pugnax",w:"Ruff",r:"hard",g:"wader",a:GENERIC},
+  {n:"Curlew Sandpiper",l:"Calidris ferruginea",w:"Curlew sandpiper",r:"hard",g:"wader",a:GENERIC},
+  {n:"Temminck\'s Stint",l:"Calidris temminckii",w:"Temminck\'s stint",r:"hard",g:"wader",a:GENERIC},
+  {n:"Sanderling",l:"Calidris alba",w:"Sanderling",r:"mid",g:"wader",a:GENERIC},
+  {n:"Dunlin",l:"Calidris alpina",w:"Dunlin",r:"mid",g:"wader",a:GENERIC},
+  {n:"Purple Sandpiper",l:"Calidris maritima",w:"Purple sandpiper",r:"hard",g:"wader",a:GENERIC},
+  {n:"Little Stint",l:"Calidris minuta",w:"Little stint",r:"hard",g:"wader",a:GENERIC},
+  {n:"Pectoral Sandpiper",l:"Calidris melanotos",w:"Pectoral sandpiper",r:"hard",g:"wader",a:GENERIC},
+  {n:"White-rumped Sandpiper",l:"Calidris fuscicollis",w:"White-rumped sandpiper",r:"hard",g:"wader",a:GENERIC},
+  {n:"Buff-breasted Sandpiper",l:"Calidris subruficollis",w:"Buff-breasted sandpiper",r:"hard",g:"wader",a:GENERIC},
+  {n:"Woodcock",l:"Scolopax rusticola",w:"Eurasian woodcock",r:"mid",g:"wader",a:GENERIC},
+  {n:"Jack Snipe",l:"Lymnocryptes minimus",w:"Jack snipe",r:"hard",g:"wader",a:GENERIC},
+  {n:"Snipe",l:"Gallinago gallinago",w:"Common snipe",r:"mid",g:"wader",a:GENERIC},
+  {n:"Red-necked Phalarope",l:"Phalaropus lobatus",w:"Red-necked phalarope",r:"hard",g:"wader",a:GENERIC},
+  {n:"Grey Phalarope",l:"Phalaropus fulicaria",w:"Red phalarope",r:"hard",g:"wader",a:GENERIC},
+  {n:"Common Sandpiper",l:"Actitis hypoleucos",w:"Common sandpiper",r:"mid",g:"wader",a:GENERIC},
+  {n:"Green Sandpiper",l:"Tringa ochropus",w:"Green sandpiper",r:"mid",g:"wader",a:GENERIC},
+  {n:"Lesser Yellowlegs",l:"Tringa flavipes",w:"Lesser yellowlegs",r:"hard",g:"wader",a:GENERIC},
+  {n:"Redshank",l:"Tringa totanus",w:"Common redshank",r:"mid",g:"wader",a:GENERIC},
+  {n:"Wood Sandpiper",l:"Tringa glareola",w:"Wood sandpiper",r:"hard",g:"wader",a:GENERIC},
+  {n:"Spotted Redshank",l:"Tringa erythropus",w:"Spotted redshank",r:"hard",g:"wader",a:GENERIC},
+  {n:"Greenshank",l:"Tringa nebularia",w:"Common greenshank",r:"mid",g:"wader",a:GENERIC},
+  {n:"Collared Pratincole",l:"Glareola pratincola",w:"Collared pratincole",r:"hard",g:"wader",a:GENERIC},
+  {n:"Kittiwake",l:"Rissa tridactyla",w:"Black-legged kittiwake",r:"mid",g:"sea",a:GENERIC},
+  {n:"Sabine\'s Gull",l:"Xema sabini",w:"Sabine\'s gull",r:"hard",g:"sea",a:GENERIC},
+  {n:"Black-headed Gull",l:"Chroicocephalus ridibundus",w:"Black-headed gull",r:"easy",g:"sea",a:GENERIC},
+  {n:"Little Gull",l:"Hydrocoloeus minutus",w:"Little gull",r:"hard",g:"sea",a:GENERIC},
+  {n:"Bonaparte\'s Gull",l:"Chroicocephalus philadelphia",w:"Bonaparte\'s gull",r:"hard",g:"sea",a:GENERIC},
+  {n:"Mediterranean Gull",l:"Ichthyaetus melanocephalus",w:"Mediterranean gull",r:"hard",g:"sea",a:GENERIC},
+  {n:"Common Gull",l:"Larus canus",w:"Mew gull",r:"easy",g:"sea",a:GENERIC},
+  {n:"Ring-billed Gull",l:"Larus delawarensis",w:"Ring-billed gull",r:"hard",g:"sea",a:GENERIC},
+  {n:"Great Black-backed Gull",l:"Larus marinus",w:"Great black-backed gull",r:"mid",g:"sea",a:GENERIC},
+  {n:"Glaucous Gull",l:"Larus hyperboreus",w:"Glaucous gull",r:"hard",g:"sea",a:GENERIC},
+  {n:"Iceland Gull",l:"Larus glaucoides",w:"Iceland gull",r:"hard",g:"sea",a:GENERIC},
+  {n:"Herring Gull",l:"Larus argentatus",w:"European herring gull",r:"easy",g:"sea",a:GENERIC},
+  {n:"Caspian Gull",l:"Larus cachinnans",w:"Caspian gull",r:"hard",g:"sea",a:GENERIC},
+  {n:"Yellow-legged Gull",l:"Larus michahellis",w:"Yellow-legged gull",r:"hard",g:"sea",a:GENERIC},
+  {n:"Lesser Black-backed Gull",l:"Larus fuscus",w:"Lesser black-backed gull",r:"mid",g:"sea",a:GENERIC},
+  {n:"Sandwich Tern",l:"Thalasseus sandvicensis",w:"Sandwich tern",r:"mid",g:"sea",a:GENERIC},
+  {n:"Little Tern",l:"Sternula albifrons",w:"Little tern",r:"hard",g:"sea",a:GENERIC},
+  {n:"Gull-billed Tern",l:"Gelochelidon nilotica",w:"Gull-billed tern",r:"hard",g:"sea",a:GENERIC},
+  {n:"Caspian Tern",l:"Hydroprogne caspia",w:"Caspian tern",r:"hard",g:"sea",a:GENERIC},
+  {n:"Roseate Tern",l:"Sterna dougallii",w:"Roseate tern",r:"hard",g:"sea",a:GENERIC},
+  {n:"Common Tern",l:"Sterna hirundo",w:"Common tern",r:"mid",g:"sea",a:GENERIC},
+  {n:"Arctic Tern",l:"Sterna paradisaea",w:"Arctic tern",r:"mid",g:"sea",a:GENERIC},
+  {n:"Black Tern",l:"Chlidonias niger",w:"Black tern",r:"hard",g:"sea",a:GENERIC},
+  {n:"White-winged Black Tern",l:"Chlidonias leucopterus",w:"White-winged tern",r:"hard",g:"sea",a:GENERIC},
+  {n:"Whiskered Tern",l:"Chlidonias hybridus",w:"Whiskered tern",r:"hard",g:"sea",a:GENERIC},
+  {n:"Great Skua",l:"Stercorarius skua",w:"Great skua",r:"mid",g:"sea",a:GENERIC},
+  {n:"Pomarine Skua",l:"Stercorarius pomarinus",w:"Pomarine jaeger",r:"hard",g:"sea",a:GENERIC},
+  {n:"Arctic Skua",l:"Stercorarius parasiticus",w:"Parasitic jaeger",r:"hard",g:"sea",a:GENERIC},
+  {n:"Long-tailed Skua",l:"Stercorarius longicaudus",w:"Long-tailed jaeger",r:"hard",g:"sea",a:GENERIC},
+  {n:"Little Auk",l:"Alle alle",w:"Dovekie",r:"hard",g:"sea",a:GENERIC},
+  {n:"Guillemot",l:"Uria aalge",w:"Common murre",r:"mid",g:"sea",a:GENERIC},
+  {n:"Razorbill",l:"Alca torda",w:"Razorbill",r:"mid",g:"sea",a:GENERIC},
+  {n:"Black Guillemot",l:"Cepphus grylle",w:"Pigeon guillemot",r:"hard",g:"sea",a:GENERIC},
+  {n:"Puffin",l:"Fratercula arctica",w:"Atlantic puffin",r:"mid",g:"sea",a:GENERIC},
+  {n:"Red-throated Diver",l:"Gavia stellata",w:"Red-throated loon",r:"mid",g:"sea",a:GENERIC},
+  {n:"Black-throated Diver",l:"Gavia arctica",w:"Arctic loon",r:"mid",g:"sea",a:GENERIC},
+  {n:"Great Northern Diver",l:"Gavia immer",w:"Common loon",r:"mid",g:"sea",a:GENERIC},
+  {n:"Fulmar",l:"Fulmarus glacialis",w:"Northern fulmar",r:"mid",g:"sea",a:GENERIC},
+  {n:"Manx Shearwater",l:"Puffinus puffinus",w:"Manx shearwater",r:"hard",g:"sea",a:GENERIC},
+  {n:"Great Shearwater",l:"Ardenna gravis",w:"Great shearwater",r:"hard",g:"sea",a:GENERIC},
+  {n:"Sooty Shearwater",l:"Ardenna grisea",w:"Sooty shearwater",r:"hard",g:"sea",a:GENERIC},
+  {n:"Balearic Shearwater",l:"Puffinus mauretanicus",w:"Balearic shearwater",r:"hard",g:"sea",a:GENERIC},
+  {n:"Cory\'s Shearwater",l:"Calonectris borealis",w:"Cory\'s shearwater",r:"hard",g:"sea",a:GENERIC},
+  {n:"Storm Petrel",l:"Hydrobates pelagicus",w:"European storm petrel",r:"hard",g:"sea",a:GENERIC},
+  {n:"Leach\'s Petrel",l:"Hydrobates leucorhous",w:"Leach\'s storm petrel",r:"hard",g:"sea",a:GENERIC},
+  {n:"Gannet",l:"Morus bassanus",w:"Northern gannet",r:"mid",g:"sea",a:GENERIC},
+  {n:"Cormorant",l:"Phalacrocorax carbo",w:"Great cormorant",r:"mid",g:"sea",a:GENERIC},
+  {n:"Shag",l:"Gulosus aristotelis",w:"European shag",r:"mid",g:"sea",a:GENERIC},
+  {n:"White Stork",l:"Ciconia ciconia",w:"White stork",r:"hard",g:"sea",a:GENERIC},
+  {n:"Black Stork",l:"Ciconia nigra",w:"Black stork",r:"hard",g:"sea",a:GENERIC},
+  {n:"Bittern",l:"Botaurus stellaris",w:"Eurasian bittern",r:"hard",g:"heron",a:GENERIC},
+  {n:"Little Bittern",l:"Ixobrychus minutus",w:"Little bittern",r:"hard",g:"heron",a:GENERIC},
+  {n:"Night Heron",l:"Nycticorax nycticorax",w:"Black-crowned night heron",r:"hard",g:"heron",a:GENERIC},
+  {n:"Squacco Heron",l:"Ardeola ralloides",w:"Squacco heron",r:"hard",g:"heron",a:GENERIC},
+  {n:"Cattle Egret",l:"Ardea ibis",w:"Western cattle egret",r:"hard",g:"heron",a:GENERIC},
+  {n:"Grey Heron",l:"Ardea cinerea",w:"Grey heron",r:"easy",g:"heron",a:GENERIC},
+  {n:"Purple Heron",l:"Ardea purpurea",w:"Purple heron",r:"hard",g:"heron",a:GENERIC},
+  {n:"Great White Egret",l:"Ardea alba",w:"Great egret",r:"hard",g:"heron",a:GENERIC},
+  {n:"Little Egret",l:"Egretta garzetta",w:"Little egret",r:"mid",g:"heron",a:GENERIC},
+  {n:"Glossy Ibis",l:"Plegadis falcinellus",w:"Glossy ibis",r:"hard",g:"heron",a:GENERIC},
+  {n:"Spoonbill",l:"Platalea leucorodia",w:"Eurasian spoonbill",r:"hard",g:"heron",a:GENERIC},
+  {n:"Water Rail",l:"Rallus aquaticus",w:"Water rail",r:"hard",g:"heron",a:GENERIC},
+  {n:"Corncrake",l:"Crex crex",w:"Corn crake",r:"hard",g:"heron",a:GENERIC},
+  {n:"Spotted Crake",l:"Porzana porzana",w:"Spotted crake",r:"hard",g:"heron",a:GENERIC},
+  {n:"Moorhen",l:"Gallinula chloropus",w:"Common moorhen",r:"easy",g:"heron",a:GENERIC},
+  {n:"Coot",l:"Fulica atra",w:"Eurasian coot",r:"easy",g:"heron",a:GENERIC},
+  {n:"Crane",l:"Grus grus",w:"Common crane",r:"hard",g:"heron",a:GENERIC},
+  {n:"Little Grebe",l:"Tachybaptus ruficollis",w:"Little grebe",r:"mid",g:"heron",a:GENERIC},
+  {n:"Red-necked Grebe",l:"Podiceps grisegena",w:"Red-necked grebe",r:"hard",g:"heron",a:GENERIC},
+  {n:"Great Crested Grebe",l:"Podiceps cristatus",w:"Great crested grebe",r:"mid",g:"heron",a:GENERIC},
+  {n:"Slavonian Grebe",l:"Podiceps auritus",w:"Horned grebe",r:"hard",g:"heron",a:GENERIC},
+  {n:"Black-necked Grebe",l:"Podiceps nigricollis",w:"Black-necked grebe",r:"hard",g:"heron",a:GENERIC},
+  {n:"Osprey",l:"Pandion haliaetus",w:"Osprey",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Honey-buzzard",l:"Pernis apivorus",w:"European honey buzzard",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Black Kite",l:"Milvus migrans",w:"Black kite",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Red Kite",l:"Milvus milvus",w:"Red kite",r:"mid",g:"raptor",a:GENERIC},
+  {n:"White-tailed Eagle",l:"Haliaeetus albicilla",w:"White-tailed eagle",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Marsh Harrier",l:"Circus aeruginosus",w:"Western marsh harrier",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Hen Harrier",l:"Circus cyaneus",w:"Hen harrier",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Montagu\'s Harrier",l:"Circus pygargus",w:"Montagu\'s harrier",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Goshawk",l:"Accipiter gentilis",w:"Northern goshawk",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Sparrowhawk",l:"Accipiter nisus",w:"Eurasian sparrowhawk",r:"mid",g:"raptor",a:GENERIC},
+  {n:"Rough-legged Buzzard",l:"Buteo lagopus",w:"Rough-legged hawk",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Buzzard",l:"Buteo buteo",w:"Common buzzard",r:"easy",g:"raptor",a:GENERIC},
+  {n:"Golden Eagle",l:"Aquila chrysaetos",w:"Golden eagle",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Kestrel",l:"Falco tinnunculus",w:"Common kestrel",r:"mid",g:"raptor",a:GENERIC},
+  {n:"Red-footed Falcon",l:"Falco vespertinus",w:"Red-footed falcon",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Merlin",l:"Falco columbarius",w:"Merlin (bird)",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Hobby",l:"Falco subbuteo",w:"Eurasian hobby",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Peregrine",l:"Falco peregrinus",w:"Peregrine falcon",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Barn Owl",l:"Tyto alba",w:"Barn owl",r:"mid",g:"raptor",a:GENERIC},
+  {n:"Little Owl",l:"Athene noctua",w:"Little owl",r:"mid",g:"raptor",a:GENERIC},
+  {n:"Tawny Owl",l:"Strix aluco",w:"Tawny owl",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Long-eared Owl",l:"Asio otus",w:"Long-eared owl",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Short-eared Owl",l:"Asio flammeus",w:"Short-eared owl",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Snowy Owl",l:"Bubo scandiacus",w:"Snowy owl",r:"hard",g:"raptor",a:GENERIC},
+  {n:"Kingfisher",l:"Alcedo atthis",w:"Common kingfisher",r:"hard",g:"garden",a:GENERIC},
+  {n:"Bee-eater",l:"Merops apiaster",w:"European bee-eater",r:"hard",g:"garden",a:GENERIC},
+  {n:"Roller",l:"Coracias garrulus",w:"European roller",r:"hard",g:"garden",a:GENERIC},
+  {n:"Hoopoe",l:"Upupa epops",w:"Hoopoe",r:"hard",g:"garden",a:GENERIC},
+  {n:"Wryneck",l:"Jynx torquilla",w:"Eurasian wryneck",r:"hard",g:"garden",a:GENERIC},
+  {n:"Lesser Spotted Woodpecker",l:"Dryobates minor",w:"Lesser spotted woodpecker",r:"hard",g:"garden",a:GENERIC},
+  {n:"Great Spotted Woodpecker",l:"Dendrocopos major",w:"Great spotted woodpecker",r:"mid",g:"garden",a:GENERIC},
+  {n:"Green Woodpecker",l:"Picus viridis",w:"European green woodpecker",r:"mid",g:"garden",a:GENERIC},
+  {n:"Red-backed Shrike",l:"Lanius collurio",w:"Red-backed shrike",r:"hard",g:"garden",a:GENERIC},
+  {n:"Great Grey Shrike",l:"Lanius excubitor",w:"Great grey shrike",r:"hard",g:"garden",a:GENERIC},
+  {n:"Woodchat Shrike",l:"Lanius senator",w:"Woodchat shrike",r:"hard",g:"garden",a:GENERIC},
+  {n:"Golden Oriole",l:"Oriolus oriolus",w:"Eurasian golden oriole",r:"hard",g:"garden",a:GENERIC},
+  {n:"Jay",l:"Garrulus glandarius",w:"Eurasian jay",r:"easy",g:"garden",a:GENERIC},
+  {n:"Magpie",l:"Pica pica",w:"Eurasian magpie",r:"easy",g:"garden",a:GENERIC},
+  {n:"Chough",l:"Pyrrhocorax pyrrhocorax",w:"Red-billed chough",r:"hard",g:"garden",a:GENERIC},
+  {n:"Jackdaw",l:"Corvus monedula",w:"Western jackdaw",r:"easy",g:"garden",a:GENERIC},
+  {n:"Rook",l:"Corvus frugilegus",w:"Rook (bird)",r:"easy",g:"garden",a:GENERIC},
+  {n:"Carrion Crow",l:"Corvus corone",w:"Carrion crow",r:"easy",g:"garden",a:GENERIC},
+  {n:"Hooded Crow",l:"Corvus cornix",w:"Hooded crow",r:"mid",g:"garden",a:GENERIC},
+  {n:"Raven",l:"Corvus corax",w:"Common raven",r:"mid",g:"garden",a:GENERIC},
+  {n:"Starling",l:"Sturnus vulgaris",w:"Common starling",r:"easy",g:"garden",a:GENERIC},
+  {n:"Rose-coloured Starling",l:"Pastor roseus",w:"Rosy starling",r:"hard",g:"garden",a:GENERIC},
+  {n:"Waxwing",l:"Bombycilla garrulus",w:"Bohemian waxwing",r:"hard",g:"garden",a:GENERIC},
+  {n:"Dipper",l:"Cinclus cinclus",w:"White-throated dipper",r:"mid",g:"garden",a:GENERIC},
+  {n:"Wren",l:"Troglodytes troglodytes",w:"Eurasian wren",r:"easy",g:"garden",a:GENERIC},
+  {n:"Dunnock",l:"Prunella modularis",w:"Dunnock",r:"easy",g:"garden",a:GENERIC},
+  {n:"Nuthatch",l:"Sitta europaea",w:"Eurasian nuthatch",r:"mid",g:"garden",a:GENERIC},
+  {n:"Treecreeper",l:"Certhia familiaris",w:"Eurasian treecreeper",r:"mid",g:"garden",a:GENERIC},
+  {n:"Blue Tit",l:"Cyanistes caeruleus",w:"Eurasian blue tit",r:"easy",g:"garden",a:GENERIC},
+  {n:"Great Tit",l:"Parus major",w:"Great tit",r:"easy",g:"garden",a:GENERIC},
+  {n:"Coal Tit",l:"Periparus ater",w:"Coal tit",r:"easy",g:"garden",a:GENERIC},
+  {n:"Marsh Tit",l:"Poecile palustris",w:"Marsh tit",r:"mid",g:"garden",a:GENERIC},
+  {n:"Willow Tit",l:"Poecile montanus",w:"Willow tit",r:"hard",g:"garden",a:GENERIC},
+  {n:"Crested Tit",l:"Lophophanes cristatus",w:"European crested tit",r:"hard",g:"garden",a:GENERIC},
+  {n:"Long-tailed Tit",l:"Aegithalos caudatus",w:"Long-tailed tit",r:"easy",g:"garden",a:GENERIC},
+  {n:"Bearded Tit",l:"Panurus biarmicus",w:"Bearded reedling",r:"hard",g:"garden",a:GENERIC},
+  {n:"Woodlark",l:"Lullula arborea",w:"Wood lark",r:"hard",g:"garden",a:GENERIC},
+  {n:"Skylark",l:"Alauda arvensis",w:"Eurasian skylark",r:"mid",g:"garden",a:GENERIC},
+  {n:"Shore Lark",l:"Eremophila alpestris",w:"Horned lark",r:"hard",g:"garden",a:GENERIC},
+  {n:"Sand Martin",l:"Riparia riparia",w:"Sand martin",r:"mid",g:"garden",a:GENERIC},
+  {n:"Swallow",l:"Hirundo rustica",w:"Barn swallow",r:"mid",g:"garden",a:GENERIC},
+  {n:"House Martin",l:"Delichon urbicum",w:"Common house martin",r:"mid",g:"garden",a:GENERIC},
+  {n:"Red-rumped Swallow",l:"Cecropis daurica",w:"Red-rumped swallow",r:"hard",g:"garden",a:GENERIC},
+  {n:"Chiffchaff",l:"Phylloscopus collybita",w:"Common chiffchaff",r:"easy",g:"garden",a:GENERIC},
+  {n:"Willow Warbler",l:"Phylloscopus trochilus",w:"Willow warbler",r:"mid",g:"garden",a:GENERIC},
+  {n:"Wood Warbler",l:"Phylloscopus sibilatrix",w:"Wood warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Yellow-browed Warbler",l:"Phylloscopus inornatus",w:"Yellow-browed warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Pallas\'s Warbler",l:"Phylloscopus proregulus",w:"Pallas\'s leaf warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Grasshopper Warbler",l:"Locustella naevia",w:"Common grasshopper warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Savi\'s Warbler",l:"Locustella luscinioides",w:"Savi\'s warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Cetti\'s Warbler",l:"Cettia cetti",w:"Cetti\'s warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Sedge Warbler",l:"Acrocephalus schoenobaenus",w:"Sedge warbler",r:"mid",g:"garden",a:GENERIC},
+  {n:"Marsh Warbler",l:"Acrocephalus palustris",w:"Marsh warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Reed Warbler",l:"Acrocephalus scirpaceus",w:"Eurasian reed warbler",r:"mid",g:"garden",a:GENERIC},
+  {n:"Great Reed Warbler",l:"Acrocephalus arundinaceus",w:"Great reed warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Melodious Warbler",l:"Hippolais polyglotta",w:"Melodious warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Icterine Warbler",l:"Hippolais icterina",w:"Icterine warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Blackcap",l:"Sylvia atricapilla",w:"Eurasian blackcap",r:"mid",g:"garden",a:GENERIC},
+  {n:"Garden Warbler",l:"Sylvia borin",w:"Garden warbler",r:"mid",g:"garden",a:GENERIC},
+  {n:"Barred Warbler",l:"Sylvia nisoria",w:"Barred warbler",r:"hard",g:"garden",a:GENERIC},
+  {n:"Lesser Whitethroat",l:"Curruca curruca",w:"Lesser whitethroat",r:"mid",g:"garden",a:GENERIC},
+  {n:"Whitethroat",l:"Curruca communis",w:"Common whitethroat",r:"mid",g:"garden",a:GENERIC},
+  {n:"Goldcrest",l:"Regulus regulus",w:"Goldcrest",r:"mid",g:"garden",a:GENERIC},
+  {n:"Firecrest",l:"Regulus ignicapilla",w:"Common firecrest",r:"hard",g:"garden",a:GENERIC},
+  {n:"Ring Ouzel",l:"Turdus torquatus",w:"Ring ouzel",r:"hard",g:"garden",a:GENERIC},
+  {n:"Blackbird",l:"Turdus merula",w:"Common blackbird",r:"easy",g:"garden",a:GENERIC},
+  {n:"Fieldfare",l:"Turdus pilaris",w:"Fieldfare",r:"mid",g:"garden",a:GENERIC},
+  {n:"Song Thrush",l:"Turdus philomelos",w:"Song thrush",r:"easy",g:"garden",a:GENERIC},
+  {n:"Redwing",l:"Turdus iliacus",w:"Redwing",r:"mid",g:"garden",a:GENERIC},
+  {n:"Mistle Thrush",l:"Turdus viscivorus",w:"Mistle thrush",r:"easy",g:"garden",a:GENERIC},
+  {n:"Spotted Flycatcher",l:"Muscicapa striata",w:"Spotted flycatcher",r:"mid",g:"garden",a:GENERIC},
+  {n:"Pied Flycatcher",l:"Ficedula hypoleuca",w:"European pied flycatcher",r:"hard",g:"garden",a:GENERIC},
+  {n:"Red-breasted Flycatcher",l:"Ficedula parva",w:"Red-breasted flycatcher",r:"hard",g:"garden",a:GENERIC},
+  {n:"Robin",l:"Erithacus rubecula",w:"European robin",r:"easy",g:"garden",a:GENERIC},
+  {n:"Nightingale",l:"Luscinia megarhynchos",w:"Common nightingale",r:"hard",g:"garden",a:GENERIC},
+  {n:"Bluethroat",l:"Luscinia svecica",w:"Bluethroat",r:"hard",g:"garden",a:GENERIC},
+  {n:"Black Redstart",l:"Phoenicurus ochruros",w:"Black redstart",r:"hard",g:"garden",a:GENERIC},
+  {n:"Redstart",l:"Phoenicurus phoenicurus",w:"Common redstart",r:"mid",g:"garden",a:GENERIC},
+  {n:"Whinchat",l:"Saxicola rubetra",w:"Whinchat",r:"mid",g:"garden",a:GENERIC},
+  {n:"Stonechat",l:"Saxicola rubicola",w:"European stonechat",r:"mid",g:"garden",a:GENERIC},
+  {n:"Wheatear",l:"Oenanthe oenanthe",w:"Northern wheatear",r:"mid",g:"garden",a:GENERIC},
+  {n:"House Sparrow",l:"Passer domesticus",w:"House sparrow",r:"easy",g:"garden",a:GENERIC},
+  {n:"Tree Sparrow",l:"Passer montanus",w:"Eurasian tree sparrow",r:"mid",g:"garden",a:GENERIC},
+  {n:"Yellow Wagtail",l:"Motacilla flava",w:"Western yellow wagtail",r:"mid",g:"garden",a:GENERIC},
+  {n:"Grey Wagtail",l:"Motacilla cinerea",w:"Grey wagtail",r:"mid",g:"garden",a:GENERIC},
+  {n:"Pied Wagtail",l:"Motacilla alba",w:"White wagtail",r:"easy",g:"garden",a:GENERIC},
+  {n:"Richard\'s Pipit",l:"Anthus richardi",w:"Richard\'s pipit",r:"hard",g:"garden",a:GENERIC},
+  {n:"Tawny Pipit",l:"Anthus campestris",w:"Tawny pipit",r:"hard",g:"garden",a:GENERIC},
+  {n:"Tree Pipit",l:"Anthus trivialis",w:"Tree pipit",r:"mid",g:"garden",a:GENERIC},
+  {n:"Meadow Pipit",l:"Anthus pratensis",w:"Meadow pipit",r:"mid",g:"garden",a:GENERIC},
+  {n:"Rock Pipit",l:"Anthus petrosus",w:"Eurasian rock pipit",r:"mid",g:"garden",a:GENERIC},
+  {n:"Water Pipit",l:"Anthus spinoletta",w:"Water pipit",r:"hard",g:"garden",a:GENERIC},
+  {n:"Chaffinch",l:"Fringilla coelebs",w:"Common chaffinch",r:"easy",g:"garden",a:GENERIC},
+  {n:"Brambling",l:"Fringilla montifringilla",w:"Brambling",r:"mid",g:"garden",a:GENERIC},
+  {n:"Greenfinch",l:"Chloris chloris",w:"European greenfinch",r:"easy",g:"garden",a:GENERIC},
+  {n:"Goldfinch",l:"Carduelis carduelis",w:"European goldfinch",r:"easy",g:"garden",a:GENERIC},
+  {n:"Siskin",l:"Spinus spinus",w:"Eurasian siskin",r:"mid",g:"garden",a:GENERIC},
+  {n:"Linnet",l:"Linaria cannabina",w:"Common linnet",r:"mid",g:"garden",a:GENERIC},
+  {n:"Twite",l:"Linaria flavirostris",w:"Twite",r:"hard",g:"garden",a:GENERIC},
+  {n:"Lesser Redpoll",l:"Acanthis cabaret",w:"Lesser redpoll",r:"mid",g:"garden",a:GENERIC},
+  {n:"Common Redpoll",l:"Acanthis flammea",w:"Common redpoll",r:"hard",g:"garden",a:GENERIC},
+  {n:"Arctic Redpoll",l:"Acanthis hornemanni",w:"Hoary redpoll",r:"hard",g:"garden",a:GENERIC},
+  {n:"Two-barred Crossbill",l:"Loxia leucoptera",w:"White-winged crossbill",r:"hard",g:"garden",a:GENERIC},
+  {n:"Crossbill",l:"Loxia curvirostra",w:"Red crossbill",r:"hard",g:"garden",a:GENERIC},
+  {n:"Scottish Crossbill",l:"Loxia scotica",w:"Scottish crossbill",r:"hard",g:"garden",a:GENERIC},
+  {n:"Parrot Crossbill",l:"Loxia pytyopsittacus",w:"Parrot crossbill",r:"hard",g:"garden",a:GENERIC},
+  {n:"Bullfinch",l:"Pyrrhula pyrrhula",w:"Eurasian bullfinch",r:"mid",g:"garden",a:GENERIC},
+  {n:"Hawfinch",l:"Coccothraustes coccothraustes",w:"Hawfinch",r:"hard",g:"garden",a:GENERIC},
+  {n:"Snow Bunting",l:"Plectrophenax nivalis",w:"Snow bunting",r:"hard",g:"garden",a:GENERIC},
+  {n:"Lapland Bunting",l:"Calcarius lapponicus",w:"Lapland longspur",r:"hard",g:"garden",a:GENERIC},
+  {n:"Yellowhammer",l:"Emberiza citrinella",w:"Yellowhammer",r:"mid",g:"garden",a:GENERIC},
+  {n:"Corn Bunting",l:"Emberiza calandra",w:"Corn bunting",r:"mid",g:"garden",a:GENERIC},
+  {n:"Cirl Bunting",l:"Emberiza cirlus",w:"Cirl bunting",r:"hard",g:"garden",a:GENERIC},
+  {n:"Ortolan Bunting",l:"Emberiza hortulana",w:"Ortolan bunting",r:"hard",g:"garden",a:GENERIC},
+  {n:"Reed Bunting",l:"Emberiza schoeniclus",w:"Common reed bunting",r:"mid",g:"garden",a:GENERIC},
+  {n:"Rustic Bunting",l:"Emberiza rustica",w:"Rustic bunting",r:"hard",g:"garden",a:GENERIC},
+  {n:"Little Bunting",l:"Emberiza pusilla",w:"Little bunting",r:"hard",g:"garden",a:GENERIC},
+];
+
+/* all 77 birds shown at once */
+let BIRDS = ALL_BIRDS;
+document.getElementById('total').textContent = ALL_BIRDS.length;
+
+const RLABEL={easy:"Easy",mid:"Likely",hard:"A treat"}, RCLASS={easy:"r-easy",mid:"r-mid",hard:"r-hard"};
+
+const grid=document.getElementById('grid'), countEl=document.getElementById('count'), banner=document.getElementById('banner');
+
+/* ---- persistence: remember ticks across sessions (saved in this browser) ---- */
+/* ── User identity ── */
+const USER_KEY='cwp-user-v1';
+let currentUser=localStorage.getItem(USER_KEY)||'';
+function userColor(name){
+  const colors=['#2a7a4e','#1a6a9e','#8a3a9e','#9e4a1a','#1a7a7a','#7a6a1a'];
+  let h=0; for(const c of name) h=(h*31+c.charCodeAt(0))&0xff;
+  return colors[h%colors.length];
+}
+function setUser(name){
+  name=name.trim().slice(0,30);
+  if(!name)return;
+  currentUser=name; localStorage.setItem(USER_KEY,name);
+  const av=document.getElementById('userAvatar');
+  const nm=document.getElementById('userName');
+  if(av){av.textContent=name[0].toUpperCase();av.style.background=userColor(name);}
+  if(nm) nm.textContent=name;
+  document.getElementById('whoOverlay').style.display='none';
+}
+function promptWho(){document.getElementById('whoOverlay').style.display='flex';
+  setTimeout(()=>document.getElementById('whoInput').focus(),100);}
+
+/* ── Local cache ── */
+const SAVE_KEY='cwp-bird-bingo-v1';
+const SIGHT_KEY='cwp-sightings-v1';
+let spotted=loadSpotted();
+let sightings=loadSightings();
+
+function loadSpotted(){try{return new Set(JSON.parse(localStorage.getItem(SAVE_KEY)||'[]'));}catch(e){return new Set();}}
+function saveLocal(){
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify([...spotted]));}catch(e){}
+  try{localStorage.setItem(SIGHT_KEY,JSON.stringify(sightings));}catch(e){}
+}
+function loadSightings(){try{return JSON.parse(localStorage.getItem(SIGHT_KEY)||'{}');}catch(e){return {};}}
+/* legacy compat */
+function saveSpotted(){saveLocal();}
+function saveSightings(){saveLocal();}
+
+/* ── API sync ── */
+const API='/api/sightings';
+let _syncPending=false;
+
+function setSyncStatus(state,msg){
+  const dot=document.getElementById('syncDot');
+  const txt=document.getElementById('syncMsg');
+  if(dot) dot.className='sync-dot '+state;
+  if(txt) txt.textContent=msg;
+}
+
+async function syncFromAPI(){
+  if(_syncPending)return;
+  _syncPending=true;
+  setSyncStatus('busy','Syncing…');
+  try{
+    const r=await fetch(API,{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const remote=await r.json();
+    let changed=false;
+    /* merge remote into local (remote wins for each key) */
+    for(const [wiki,s] of Object.entries(remote)){
+      if(!sightings[wiki]||new Date(s.ts)>=new Date(sightings[wiki].ts||0)){
+        sightings[wiki]=s; spotted.add(wiki); changed=true;
+      }
+    }
+    /* also remove any locally-spotted birds that were deleted remotely */
+    for(const wiki of [...spotted]){
+      if(!remote[wiki]&&sightings[wiki]&&!sightings[wiki]._localOnly){
+        delete sightings[wiki]; spotted.delete(wiki); changed=true;
+      }
+    }
+    if(changed){
+      saveLocal();
+      document.querySelectorAll('.tile').forEach(applySpot);
+      updateCount(); updateProgress();
+      if(typeof applyFilters==='function') applyFilters();
+    }
+    setSyncStatus('ok','Synced');
+  }catch(e){
+    setSyncStatus('err','Offline — ticks saved locally');
+  }finally{_syncPending=false;}
+}
+
+async function pushSighting(wiki,data){
+  setSyncStatus('busy','Saving…');
+  try{
+    await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({wiki,sighting:data})});
+    setSyncStatus('ok','Saved');
+  }catch(e){
+    data._localOnly=true; /* flag for later retry */
+    setSyncStatus('err','Saved locally — will sync when online');
+  }
+}
+
+async function deleteSighting(wiki){
+  setSyncStatus('busy','Removing…');
+  try{
+    await fetch(API,{method:'DELETE',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({wiki})});
+    setSyncStatus('ok','Synced');
+  }catch(e){setSyncStatus('err','Removed locally');}
+}
+
+/* sync on focus and every 30 s */
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncFromAPI();});
+setInterval(syncFromAPI,30000);
+
+function applySpot(tile){
+  const b=BIRDS[+tile.dataset.idx], on=spotted.has(b.w);
+  tile.classList.toggle('spotted',on);
+  tile.querySelector('.check').setAttribute('aria-pressed',on);
+  const locEl=tile.querySelector('.tile-loc');
+  const spEl=tile.querySelector('.tile-spotter');
+  const s=sightings[b.w];
+  if(locEl) locEl.textContent=s&&s.loc?'📍 '+s.loc:'';
+  if(spEl){
+    if(on&&s&&s.user){
+      spEl.style.display='inline-block';
+      spEl.style.background=userColor(s.user);
+      spEl.textContent=s.user;
+    } else {
+      spEl.style.display='none';
+    }
+  }
+}
+
+/* pending tile waiting for location input */
+let _pendingTile=null;
+let _pendingCoords=null;
+
+function toggleSpot(tile){
+  const b=BIRDS[+tile.dataset.idx];
+  if(spotted.has(b.w)){
+    /* un-tick: remove immediately, no location prompt */
+    spotted.delete(b.w);
+    delete sightings[b.w];
+    applySpot(tile);saveSpotted();saveSightings();updateCount();syncLbTick();
+    if(typeof applyFilters==='function') applyFilters();
+    updateProgress();
+  } else {
+    /* new tick: open location sheet */
+    _pendingTile=tile;
+    openLocSheet(b);
+  }
+}
+
+function commitSpot(tile, loc){
+  const b=BIRDS[+tile.dataset.idx];
+  spotted.add(b.w);
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  sightings[b.w]={date:dateStr,loc:loc||'',ts:now.toISOString(),coords:_pendingCoords||null};
+  _pendingCoords=null;
+  if(loc) saveLastLoc(loc);
+  applySpot(tile);saveSpotted();saveSightings();updateCount();syncLbTick();showToast(b);
+  if(typeof applyFilters==='function') applyFilters();
+  updateProgress();
+  if(_map&&document.getElementById('mapPanel').classList.contains('active')){ renderHotspots(); }
+}
+
+/* last-used locations for quick-fill */
+function getRecentLocs(){try{return JSON.parse(localStorage.getItem('cwp-locs-v1')||'[]');}catch(e){return[];}}
+function saveLastLoc(loc){
+  let locs=getRecentLocs().filter(l=>l!==loc);
+  locs.unshift(loc); locs=locs.slice(0,5);
+  try{localStorage.setItem('cwp-locs-v1',JSON.stringify(locs));}catch(e){}
+}
+
+function render(){
+  grid.innerHTML='';
+  BIRDS.forEach((b,i)=>{
+    const t=document.createElement('div');
+    t.className='tile'; t.dataset.idx=i; t.dataset.zoom='';
+    t.dataset.grp=b.g; t.dataset.rar=b.r;
+    t.innerHTML=`
+      <button class="photo" type="button" aria-label="Zoom in on ${b.n}">
+        <div class="fallback">${b.a}</div>
+        <div class="spin"></div>
+        <img alt="${b.n}" loading="lazy">
+        <div class="stamp">Spotted ✓</div>
+        <span class="zoom-hint" aria-hidden="true">⤢</span>
+      </button>
+      <button class="check" type="button" aria-label="Mark ${b.n} spotted" aria-pressed="false">✓</button>
+      <div class="label">
+        <div class="name">${b.n}</div>
+        <div class="latin">${b.l}</div>
+        <div class="rarity ${RCLASS[b.r]}">${RLABEL[b.r]}</div>
+        <div class="tile-loc"></div>
+        <div class="tile-spotter" style="display:none"></div>
+      </div>`;
+    t.querySelector('.photo').addEventListener('click',()=>openLightbox(t));
+    t.querySelector('.check').addEventListener('click',e=>{e.stopPropagation();toggleSpot(t);});
+    t.querySelector('.label').addEventListener('click',()=>toggleSpot(t));
+    grid.appendChild(t);
+    applySpot(t);
+  });
+  updateCount();
+  loadPhotos();
+}
+function updateCount(){countEl.textContent=document.querySelectorAll('.tile.spotted').length;}
+
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  spotted.clear(); sightings={}; saveLocal();
+  document.querySelectorAll('.tile').forEach(applySpot);
+  updateCount(); syncLbTick(); updateProgress();
+  fetch(API,{method:'PATCH'}).catch(()=>{});
+});
+
+document.getElementById('shuffleBtn').addEventListener('click',()=>{
+  /* shuffle into a random order */
+  const arr=[...BIRDS];
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  BIRDS=arr; render();
+});
+
+/* Load ALL bird photos — batched into groups of 50 (Wikipedia API limit).
+   Uses JSONP so it works from saved local files and HTML viewer apps. */
+function loadPhotos(){
+  const tiles=[...grid.querySelectorAll('.tile')];
+  const urlMap={};  /* wikipedia title (lower) → thumbnail src */
+  let loaded=0;
+
+  function applyUrls(){
+    tiles.forEach(t=>{
+      const b=BIRDS[+t.dataset.idx];
+      const img=t.querySelector('img'), spin=t.querySelector('.spin'), fb=t.querySelector('.fallback');
+      const src=urlMap[b.w.toLowerCase()];
+      if(src){
+        t.dataset.zoom=src;
+        img.onload=()=>{img.classList.add('ready');fb.style.display='none';spin.style.display='none';loaded++;
+          if(loaded>0) banner.style.display='none';};
+        img.onerror=()=>{spin.style.display='none';};
+        img.src=src;
+      } else { spin.style.display='none'; }
+    });
+  }
+
+  function mergePages(data){
+    const pages=(data&&data.query&&data.query.pages)||{};
+    Object.values(pages).forEach(pg=>{
+      if(pg.thumbnail&&pg.thumbnail.source) urlMap[pg.title.toLowerCase()]=pg.thumbnail.source;
+    });
+    (data.query&&data.query.redirects||[]).forEach(r=>{
+      if(urlMap[r.to.toLowerCase()]&&!urlMap[r.from.toLowerCase()])
+        urlMap[r.from.toLowerCase()]=urlMap[r.to.toLowerCase()];
+    });
+    (data.query&&data.query.normalized||[]).forEach(n=>{
+      if(urlMap[n.to.toLowerCase()]&&!urlMap[n.from.toLowerCase()])
+        urlMap[n.from.toLowerCase()]=urlMap[n.to.toLowerCase()];
+    });
+  }
+
+  function jsonpBatch(titles, onDone){
+    const cbName='_wpb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const script=document.createElement('script');
+    let done=false;
+    const finish=()=>{ if(done)return; done=true; delete window[cbName]; script.remove(); onDone(); };
+    setTimeout(finish, 12000);
+    window[cbName]=(data)=>{ mergePages(data); finish(); };
+    script.onerror=finish;
+    script.src=`https://en.wikipedia.org/w/api.php?action=query&format=json&callback=${cbName}&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=400&pilimit=50&titles=${encodeURIComponent(titles.join('|'))}`;
+    document.head.appendChild(script);
+  }
+
+  const allTitles=ALL_BIRDS.map(b=>b.w.replace(/ /g,'_'));
+  const chunkSize=50;
+  const chunks=[];
+  for(let i=0;i<allTitles.length;i+=chunkSize) chunks.push(allTitles.slice(i,i+chunkSize));
+  let doneBatches=0;
+  chunks.forEach(chunk=>{
+    jsonpBatch(chunk,()=>{ doneBatches++; if(doneBatches===chunks.length) applyUrls(); });
+  });
+
+  /* fallback: if nothing loaded after 14s, show error */
+  setTimeout(()=>{
+    if(loaded===0){
+      banner.style.display='block';
+      banner.textContent='Couldn\u2019t load photos \u2014 make sure you\u2019re online and open this in Safari or Chrome.';
+      tiles.forEach(t=>t.querySelector('.spin').style.display='none');
+    }
+  },14000);
+}
+
+/* ---- lightbox (click a photo to zoom) ---- */
+function buildLightbox(){
+  const el=document.createElement('div');
+  el.className='lightbox'; el.hidden=true;
+  el.innerHTML=`<button class="lb-close" type="button" aria-label="Close">✕</button>
+    <figure class="lb-fig">
+      <div class="lb-imgwrap"></div>
+      <figcaption><span class="lb-name"></span><span class="lb-latin"></span></figcaption>
+      <button class="ctrl lb-tick" type="button">Mark spotted</button>
+    </figure>`;
+  document.body.appendChild(el);
+  el.addEventListener('click',e=>{ if(e.target===el||e.target.closest('.lb-close')) closeLightbox(); });
+  el.querySelector('.lb-tick').addEventListener('click',()=>{
+    if(!lbTile)return;
+    toggleSpot(lbTile);
+  });
+  return el;
+}
+const LB=buildLightbox();
+let lbTile=null;
+function syncLbTick(){
+  const tk=LB.querySelector('.lb-tick'), on=lbTile&&lbTile.classList.contains('spotted');
+  tk.classList.toggle('on',!!on);
+  tk.textContent=on?'Spotted ✓ — tap to undo':'Mark spotted';
+}
+function openLightbox(tile){
+  lbTile=tile;
+  const b=BIRDS[+tile.dataset.idx], zoom=tile.dataset.zoom;
+  LB.querySelector('.lb-imgwrap').innerHTML = zoom
+    ? `<img alt="${b.n}" src="${zoom}">`
+    : `<div>${b.a}</div>`;
+  LB.querySelector('.lb-name').textContent=b.n;
+  LB.querySelector('.lb-latin').textContent=' · '+b.l;
+  syncLbTick();
+  /* show sighting info */
+  let sightEl=LB.querySelector('.lb-sighting');
+  if(!sightEl){
+    sightEl=document.createElement('p');
+    sightEl.className='lb-sighting';
+    LB.querySelector('.lb-fig').insertBefore(sightEl,LB.querySelector('.lb-tick'));
+  }
+  const s=sightings[b.w];
+  sightEl.innerHTML=s?[s.user?`<strong>${s.user}</strong>`:'', s.loc?`📍 ${s.loc}`:'',s.date].filter(Boolean).join(' · '):'';
+  LB.hidden=false; document.body.style.overflow='hidden';
+}
+function closeLightbox(){ LB.hidden=true; document.body.style.overflow=''; }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!LB.hidden) closeLightbox(); });
+
+/* ---- congratulations toast ---- */
+const TOASTS = {
+  easy:[
+    {e:"🦆", m:"Sharp eyes — got it!"},
+    {e:"👀", m:"Clocked it already!"},
+    {e:"🌿", m:"Nice spot!"},
+    {e:"🦢", m:"Easy one ticked off!"},
+    {e:"✅", m:"First one down!"},
+  ],
+  mid:[
+    {e:"🔭", m:"Good eye for that one!"},
+    {e:"🌊", m:"Worth the patience!"},
+    {e:"🎯", m:"Spot on!"},
+    {e:"🦅", m:"That's a fine sighting!"},
+    {e:"📖", m:"The field guides are proud."},
+  ],
+  hard:[
+    {e:"🏆", m:"That's a cracker of a bird!"},
+    {e:"🎉", m:"Red-letter day!"},
+    {e:"🌟", m:"You lucky lot — beauty!"},
+    {e:"🦉", m:"Seasoned birder energy!"},
+    {e:"🪶", m:"That one's worth a story!"},
+  ],
+};
+
+const showToast=(()=>{
+  const el=document.createElement('div');
+  el.className='toast'; el.setAttribute('role','status'); el.setAttribute('aria-live','polite');
+  document.body.appendChild(el);
+  let timer=null;
+  return function(bird){
+    clearTimeout(timer);
+    const pool=TOASTS[bird.r]||TOASTS.mid;
+    const pick=pool[Math.floor(Math.random()*pool.length)];
+    el.innerHTML=`<span class="t-emoji" aria-hidden="true">${pick.e}</span><div class="t-bird">${bird.n}</div><div class="t-msg">${pick.m}</div>`;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+    timer=setTimeout(()=>el.classList.remove('show'), 3200);
+  };
+})();
+
+/* ── filters ── */
+const filterState={grp:'all',rar:'all',spot:'all',q:''};
+const filterCountEl=document.getElementById('filter-count');
+
+function applyFilters(){
+  const tiles=[...document.querySelectorAll('.tile')];
+  let vis=0;
+  tiles.forEach(t=>{
+    const b=BIRDS[+t.dataset.idx];
+    const isSp=spotted.has(b.w);
+    const ok=
+      (filterState.grp==='all'||t.dataset.grp===filterState.grp)&&
+      (filterState.rar==='all'||t.dataset.rar===filterState.rar)&&
+      (filterState.spot==='all'||(filterState.spot==='spotted'?isSp:!isSp))&&
+      (filterState.q===''||b.n.toLowerCase().includes(filterState.q));
+    t.classList.toggle('hidden',!ok);
+    if(ok)vis++;
+  });
+  const tot=tiles.length;
+  filterCountEl.textContent=vis<tot?`Showing ${vis} of ${tot}`:'';
+}
+
+document.querySelectorAll('[data-grp]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-grp]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); filterState.grp=btn.dataset.grp; applyFilters();
+  });
+});
+document.querySelectorAll('[data-rar]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-rar]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); filterState.rar=btn.dataset.rar; applyFilters();
+  });
+});
+document.querySelectorAll('[data-spot]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-spot]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); filterState.spot=btn.dataset.spot; applyFilters();
+  });
+});
+document.getElementById('search').addEventListener('input',e=>{
+  filterState.q=e.target.value.trim().toLowerCase(); applyFilters();
+});
+
+/* ── location sheet ── */
+const locOverlay=document.getElementById('locOverlay');
+const locBirdName=document.getElementById('locBirdName');
+const locAutoInfo=document.getElementById('locAutoInfo');
+const locInputEl=document.getElementById('locInput');
+const locLastEl=document.getElementById('locLast');
+const locStatusEl=document.getElementById('locStatus');
+const locDetectBtn=document.getElementById('locDetectBtn');
+
+function setLocStatus(msg, isErr){
+  locStatusEl.textContent=msg;
+  locStatusEl.style.color=isErr?'var(--accent)':'var(--ink-soft)';
+}
+
+function detectLocation(){
+  if(!navigator.geolocation){
+    setLocStatus('Geolocation not available on this device', true);
+    locInputEl.placeholder='Where did you see it? (optional)';
+    return;
+  }
+  locDetectBtn.classList.add('spinning');
+  locInputEl.placeholder='Detecting…';
+  locInputEl.value='';
+  setLocStatus('Finding your location…');
+
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      /* store raw coords for map */
+      _pendingCoords={lat:pos.coords.latitude, lon:pos.coords.longitude};
+      const {latitude:lat, longitude:lon}=pos.coords;
+      /* BigDataCloud client-side reverse geocoder — no API key, CORS-open */
+      fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+        .then(r=>r.json())
+        .then(d=>{
+          /* Build a nice UK-style place string */
+          const nature = d.localityInfo?.informative?.find(i=>
+            /nature|reserve|park|water|forest|moor|heath/i.test(i.name||''));
+          const parts=[
+            nature?.name,
+            d.locality||d.city||d.principalSubdivisionCode,
+            d.principalSubdivision
+          ].filter(Boolean);
+          const loc=parts.slice(0,2).join(', ')||d.countryName||'';
+          locInputEl.value=loc;
+          locInputEl.placeholder='Where did you see it?';
+          setLocStatus(loc ? '✓ Location detected — edit if needed' : 'Got coordinates but no place name');
+        })
+        .catch(()=>{
+          /* fallback: show raw coordinates */
+          locInputEl.value=`${lat.toFixed(4)}°N, ${Math.abs(lon).toFixed(4)}°${lon<0?'W':'E'}`;
+          setLocStatus('Showing coordinates — feel free to edit');
+        })
+        .finally(()=>locDetectBtn.classList.remove('spinning'));
+    },
+    err=>{
+      locDetectBtn.classList.remove('spinning');
+      locInputEl.placeholder='Where did you see it? (optional)';
+      const msgs={1:'Location permission denied — type it manually',
+                  2:'Could not get location — type it manually',
+                  3:'Location timed out — type it manually'};
+      setLocStatus(msgs[err.code]||'Location unavailable', true);
+    },
+    {timeout:10000, maximumAge:60000, enableHighAccuracy:false}
+  );
+}
+
+function openLocSheet(bird){
+  locBirdName.textContent=bird.n;
+  const now=new Date();
+  locAutoInfo.textContent=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  locInputEl.value='';
+  setLocStatus('');
+  _pendingCoords=null;
+  /* recent locations */
+  const recents=getRecentLocs();
+  locLastEl.innerHTML=recents.length
+    ?'<span style="font-size:11px;font-weight:600;color:var(--ink)">Recent:</span> '+
+      recents.map(l=>`<button onclick="locInputEl.value='${l.replace(/'/g,"\\'")}';setLocStatus('')">${l}</button>`).join(' ')
+    :'';
+  locOverlay.classList.add('open');
+  document.body.style.overflow='hidden';
+  /* auto-detect location */
+  detectLocation();
+}
+function closeLocSheet(){locOverlay.classList.remove('open');document.body.style.overflow='';}
+
+document.getElementById('locSave').addEventListener('click',()=>{
+  if(!_pendingTile)return;
+  commitSpot(_pendingTile, locInputEl.value.trim());
+  closeLocSheet(); _pendingTile=null;
+});
+document.getElementById('locSkip').addEventListener('click',()=>{
+  if(!_pendingTile)return;
+  commitSpot(_pendingTile,'');
+  closeLocSheet(); _pendingTile=null;
+});
+locOverlay.addEventListener('click',e=>{ if(e.target===locOverlay){closeLocSheet(); _pendingTile=null;} });
+locDetectBtn.addEventListener('click',detectLocation);
+locInputEl.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ document.getElementById('locSave').click(); }
+  if(e.key==='Escape'){ closeLocSheet(); _pendingTile=null; }
+});
+
+/* ── group progress ── */
+const GROUP_META={
+  water: {label:'🦆 Waterfowl'},
+  wader: {label:'🐦 Waders'},
+  sea:   {label:'⛵ Seabirds'},
+  heron: {label:'🦢 Herons & Rails'},
+  raptor:{label:'🦅 Raptors & Owls'},
+  game:  {label:'🕊️ Gamebirds & Doves'},
+  garden:{label:'🌿 Garden & Woodland'},
+};
+
+function updateProgress(){
+  const rowsEl=document.getElementById('progRows');
+  if(!rowsEl)return;
+  const groups=Object.keys(GROUP_META);
+  let totalAll=0, spottedAll=0;
+  const rows=groups.map(g=>{
+    const birds=ALL_BIRDS.filter(b=>b.g===g);
+    const sp=birds.filter(b=>spotted.has(b.w)).length;
+    const tot=birds.length;
+    totalAll+=tot; spottedAll+=sp;
+    const pct=tot?Math.round(sp/tot*100):0;
+    return {g,sp,tot,pct,label:GROUP_META[g].label};
+  });
+
+  rowsEl.innerHTML=rows.map(r=>`
+    <div class="prog-row" onclick="document.querySelector('[data-grp=\\"${r.g}\\"]').click()">
+      <div class="prog-label">${r.label}</div>
+      <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${r.pct}%"></div></div>
+      <div class="prog-pct">${r.pct}%</div>
+      <div class="prog-total">${r.sp}/${r.tot}</div>
+    </div>`).join('')+`
+    <div class="prog-all-row">
+      <div class="prog-label" style="font-size:13px;font-weight:700">Total</div>
+      <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${Math.round(spottedAll/totalAll*100)}%;background:var(--accent)"></div></div>
+      <div class="prog-pct" style="color:var(--accent)">${Math.round(spottedAll/totalAll*100)}%</div>
+      <div class="prog-total">${spottedAll}/${totalAll}</div>
+    </div>`;
+}
+
+/* progress panel toggle */
+const progToggle=document.getElementById('progToggle');
+const progBody=document.getElementById('progBody');
+progToggle.addEventListener('click',()=>{
+  const open=progBody.classList.toggle('open');
+  progToggle.classList.toggle('open',open);
+});
+/* open by default */
+progBody.classList.add('open'); progToggle.classList.add('open');
+
+/* update lightbox to show sighting info */
+
+
+/* ── Leaflet map ── */
+let _leafletLoaded=false, _map=null, _markers=[];
+
+function loadLeaflet(cb){
+  if(_leafletLoaded){cb();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+  s.onload=()=>{_leafletLoaded=true;cb();};
+  s.onerror=()=>{
+    const ph=document.getElementById('mapPlaceholder');
+    ph.style.display='flex';
+    ph.innerHTML='<div class="icon">🌐</div><div>Map needs an internet connection — open this file in Safari or Chrome while online</div>';
+    document.getElementById('map').style.display='none';
+    document.getElementById('mapLegend').style.display='none';
+  };
+  /* timeout if CDN is slow */
+  setTimeout(()=>{ if(!_leafletLoaded) s.onerror(); }, 8000);
+  document.head.appendChild(s);
+}
+
+function makePinIcon(count, emoji){
+  const multi=count>1;
+  return L.divIcon({
+    className:'',
+    iconSize:[32,32], iconAnchor:[16,32], popupAnchor:[0,-34],
+    html:`<div class="bird-pin${multi?' multi':''}" style="position:relative">
+      <span class="emoji">${emoji||'🐦'}</span>
+      ${count>1?`<span class="pin-count">${count}</span>`:''}
+    </div>`
+  });
+}
+
+function getGroupEmoji(birdName){
+  const b=ALL_BIRDS.find(x=>x.n===birdName);
+  if(!b) return '🐦';
+  const map={water:'🦆',wader:'🐦',sea:'⛵',heron:'🦢',raptor:'🦅',game:'🕊️',garden:'🌿'};
+  return map[b.g]||'🐦';
+}
+
+/* geocode a text location string → {lat,lon} via Nominatim */
+const _geoCache={};
+async function geocodeLocation(loc){
+  if(_geoCache[loc]) return _geoCache[loc];
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(loc)}&limit=1&countrycodes=gb,ie`);
+    const d=await r.json();
+    if(d&&d[0]){const c={lat:+d[0].lat,lon:+d[0].lon};_geoCache[loc]=c;return c;}
+  }catch(e){}
+  return null;
+}
+
+async function renderMap(){
+  const placeholder=document.getElementById('mapPlaceholder');
+  const legend=document.getElementById('mapLegend');
+
+  /* ── Always initialise the map first ── */
+  if(!_map){
+    placeholder.style.display='none';
+    _map=L.map('map',{zoomControl:true}).setView([54.5,-2],6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom:18
+    }).addTo(_map);
+    legend.style.display='flex';
+    /* invalidate twice: once after a tick, once after a short delay,
+       to handle both fast and slow mobile reflow */
+    requestAnimationFrame(()=>_map&&_map.invalidateSize());
+    setTimeout(()=>_map&&_map.invalidateSize(), 400);
+    setTimeout(()=>_map&&_map.invalidateSize(), 900);
+  } else {
+    _markers.forEach(m=>m.remove()); _markers=[];
+  }
+
+  /* ── Plot personal sightings ── */
+  const withLoc=Object.entries(sightings).filter(([,s])=>s.loc||s.coords);
+
+  if(withLoc.length){
+    /* resolve coords for any text-only locations */
+    const resolved=[];
+    for(const [wiki,s] of withLoc){
+      let coords=s.coords;
+      if(!coords&&s.loc) coords=await geocodeLocation(s.loc);
+      if(coords) resolved.push({wiki,s,coords});
+    }
+
+    /* cluster same-spot sightings */
+    const clusters={};
+    for(const item of resolved){
+      const key=`${item.coords.lat.toFixed(3)},${item.coords.lon.toFixed(3)}`;
+      if(!clusters[key]) clusters[key]={coords:item.coords,birds:[]};
+      const bName=ALL_BIRDS.find(b=>b.w===item.wiki)?.n||item.wiki;
+      clusters[key].birds.push({name:bName,date:item.s.date,loc:item.s.loc});
+    }
+
+    const bounds=[];
+    for(const [,cluster] of Object.entries(clusters)){
+      const {coords,birds}=cluster;
+      const emoji=birds.length===1?getGroupEmoji(birds[0].name):'🐦';
+      const icon=makePinIcon(birds.length,emoji);
+      const popupHtml=`<div class="map-popup">
+        <p class="pop-loc">📍 ${birds[0].loc||'Location'}</p>
+        ${birds.map(b=>`<div class="pop-bird">
+          <span>${b.name}</span>
+          <span class="pop-date">${b.date||''}</span>
+        </div>`).join('')}
+      </div>`;
+      const m=L.marker([coords.lat,coords.lon],{icon}).addTo(_map).bindPopup(popupHtml);
+      if(_showSightings) m.addTo(_map); else m.remove();
+      _markers.push(m);
+      bounds.push([coords.lat,coords.lon]);
+    }
+    if(bounds.length===1) _map.setView(bounds[0],13);
+    else if(bounds.length>1) _map.fitBounds(bounds,{padding:[40,40]});
+  }
+
+  /* ── Plot recommended hotspots ── */
+  renderHotspots();
+}
+
+
+/* ── UK Birding Hotspots ── */
+const HOTSPOTS = [
+  {name:"RSPB Minsmere", loc:"Suffolk", lat:52.2306, lon:1.5656,
+   url:"https://www.rspb.org.uk/reserves/minsmere",
+   birds:["Avocet","Bittern","Marsh Harrier","Bearded Tit","Nightjar","Nightingale","Cetti's Warbler","Hobby","Sedge Warbler","Reed Warbler","Spotted Flycatcher"]},
+  {name:"RSPB Bempton Cliffs", loc:"Yorkshire", lat:54.1478, lon:-0.1647,
+   url:"https://www.rspb.org.uk/reserves/bempton-cliffs",
+   birds:["Gannet","Puffin","Razorbill","Guillemot","Kittiwake","Fulmar","Shag"]},
+  {name:"Titchwell Marsh RSPB", loc:"Norfolk", lat:52.9706, lon:0.6289,
+   url:"https://www.rspb.org.uk/reserves/titchwell",
+   birds:["Avocet","Marsh Harrier","Bearded Tit","Knot","Bar-tailed Godwit","Little Stint","Curlew Sandpiper","Spotted Redshank","Little Gull","Sandwich Tern","Little Tern"]},
+  {name:"Cley Marshes", loc:"Norfolk", lat:52.9579, lon:1.0500,
+   url:"https://www.norfolkwildlifetrust.org.uk/cley",
+   birds:["Avocet","Bittern","Marsh Harrier","Bearded Tit","Ruff","Black-tailed Godwit","Spotted Redshank","Wood Sandpiper","Cetti's Warbler","Sedge Warbler"]},
+  {name:"RSPB Frampton Marsh", loc:"Lincolnshire", lat:52.9325, lon:-0.0214,
+   url:"https://www.rspb.org.uk/reserves/frampton-marsh",
+   birds:["Avocet","Black-tailed Godwit","Ruff","Spotted Redshank","Curlew Sandpiper","Little Stint","Lapwing","Golden Plover","Marsh Harrier"]},
+  {name:"Skomer Island", loc:"Pembrokeshire", lat:51.7378, lon:-5.2843,
+   url:"https://www.welshwildlife.org/skomer",
+   birds:["Puffin","Manx Shearwater","Storm Petrel","Razorbill","Guillemot","Kittiwake","Great Skua","Chough"]},
+  {name:"WWT Slimbridge", loc:"Gloucestershire", lat:51.7333, lon:-2.3833,
+   url:"https://www.wwt.org.uk/wetland-centres/slimbridge",
+   birds:["Bewick's Swan","Whooper Swan","White-fronted Goose","Pink-footed Goose","Brent Goose","Wigeon","Pintail","Teal","Smew","Goosander","Marsh Harrier","Peregrine"]},
+  {name:"Cotswold Water Park", loc:"Gloucestershire", lat:51.6640, lon:-1.9480,
+   url:"https://www.waterpark.org",
+   birds:["Kingfisher","Great Crested Grebe","Little Egret","Great White Egret","Gadwall","Tufted Duck","Pochard","Goldeneye","Common Tern","Sand Martin","Hobby","Marsh Harrier","Lapwing","Redshank","Green Sandpiper","Common Sandpiper"]},
+  {name:"RSPB Leighton Moss", loc:"Lancashire", lat:54.1667, lon:-2.7833,
+   url:"https://www.rspb.org.uk/reserves/leighton-moss",
+   birds:["Bittern","Bearded Tit","Marsh Harrier","Osprey","Avocet","Spotted Redshank","Cetti's Warbler","Reed Warbler","Sedge Warbler","Spotted Flycatcher"]},
+  {name:"Cairngorms National Park", loc:"Scotland", lat:57.1178, lon:-3.6700,
+   url:"https://www.cairngorms.co.uk",
+   birds:["Ptarmigan","Dotterel","Golden Eagle","Osprey","Peregrine","Goshawk","Red Grouse","Black Grouse","Capercaillie","Crested Tit","Scottish Crossbill","Parrot Crossbill","Crossbill","Goldeneye","Dipper","Ring Ouzel","Snow Bunting"]},
+  {name:"RSPB Loch Garten", loc:"Speyside", lat:57.2492, lon:-3.7300,
+   url:"https://www.rspb.org.uk/reserves/loch-garten",
+   birds:["Osprey","Crested Tit","Scottish Crossbill","Red Squirrel","Goldeneye","Goosander","Black Grouse","Capercaillie"]},
+  {name:"The Wash", loc:"Norfolk/Lincolnshire", lat:52.9000, lon:0.2500,
+   url:"https://www.rspb.org.uk/reserves/snettisham",
+   birds:["Knot","Dunlin","Bar-tailed Godwit","Oystercatcher","Redshank","Pink-footed Goose","Brent Goose","Shelduck","Ringed Plover","Turnstone"]},
+  {name:"Dungeness", loc:"Kent", lat:50.9144, lon:0.9667,
+   url:"https://www.rspb.org.uk/reserves/dungeness",
+   birds:["Long-tailed Duck","Common Scoter","Black Redstart","Little Ringed Plover","Mediterranean Gull","Little Gull","Yellow-legged Gull","Common Tern","Bewick's Swan","Stone-curlew","Nightjar","Dartford Warbler"]},
+  {name:"Stodmarsh NNR", loc:"Kent", lat:51.2958, lon:1.1894,
+   url:"https://www.rspb.org.uk/reserves/stodmarsh",
+   birds:["Bearded Tit","Cetti's Warbler","Reed Warbler","Marsh Warbler","Marsh Harrier","Garganey","Spotted Crake","Savi's Warbler","Water Rail","Bittern"]},
+  {name:"New Forest", loc:"Hampshire", lat:50.8667, lon:-1.5667,
+   url:"https://www.newforestnpa.gov.uk",
+   birds:["Dartford Warbler","Hobby","Honey-buzzard","Goshawk","Woodlark","Crossbill","Redstart","Wood Warbler","Nightjar","Firecrest","Hawfinch"]},
+  {name:"Islay", loc:"Scotland", lat:55.7783, lon:-6.1667,
+   url:"https://www.visitscotland.com",
+   birds:["White-tailed Eagle","Golden Eagle","Chough","Barnacle Goose","White-fronted Goose","Hen Harrier","Short-eared Owl","Peregrine","Greenfinch","Stonechat"]},
+  {name:"Orkney Islands", loc:"Scotland", lat:58.9833, lon:-2.9500,
+   url:"https://www.rspb.org.uk/reserves/hoy",
+   birds:["Great Skua","Arctic Skua","Red-throated Diver","Hen Harrier","Short-eared Owl","Merlin","Corncrake","Black Guillemot","Puffin","Razorbill","Guillemot"]},
+  {name:"Shetland Islands", loc:"Scotland", lat:60.1500, lon:-1.1500,
+   url:"https://www.shetlandamenity.org",
+   birds:["Great Skua","Arctic Skua","Red-necked Phalarope","Long-tailed Duck","Snow Bunting","Lapland Bunting","Twite","Arctic Tern","Black Guillemot","Puffin","Storm Petrel","Leach's Petrel"]},
+  {name:"RSPB Ynys-hir", loc:"Wales", lat:52.5333, lon:-3.9167,
+   url:"https://www.rspb.org.uk/reserves/ynys-hir",
+   birds:["Red Kite","Pied Flycatcher","Wood Warbler","Redstart","Spotted Flycatcher","Merlin","Peregrine","Dipper","Grey Wagtail","Tree Pipit","Cuckoo"]},
+  {name:"WWT Welney", loc:"Norfolk", lat:52.5000, lon:0.2833,
+   url:"https://www.wwt.org.uk/wetland-centres/welney",
+   birds:["Whooper Swan","Bewick's Swan","Wigeon","Pintail","Teal","Shoveler","Pochard","Smew","Goosander","Golden Plover","Lapwing"]},
+  {name:"RSPB Lakenheath Fen", loc:"Suffolk", lat:52.4623, lon:0.5218,
+   url:"https://www.rspb.org.uk/reserves/lakenheath-fen",
+   birds:["Golden Oriole","Marsh Harrier","Bittern","Bearded Tit","Cetti's Warbler","Hobby","Spotted Flycatcher","Little Egret","Great White Egret"]},
+  {name:"WWT Martin Mere", loc:"Lancashire", lat:53.5833, lon:-2.8333,
+   url:"https://www.wwt.org.uk/wetland-centres/martin-mere",
+   birds:["Whooper Swan","Pink-footed Goose","Golden Plover","Ruff","Spotted Redshank","Pintail","Wigeon","Teal"]},
+  {name:"Abernethy Forest", loc:"Scotland", lat:57.2000, lon:-3.6500,
+   url:"https://www.rspb.org.uk/reserves/abernethy",
+   birds:["Osprey","Capercaillie","Black Grouse","Crested Tit","Scottish Crossbill","Parrot Crossbill","Goldeneye","Red-breasted Merganser","Goosander","Dipper","Ring Ouzel"]},
+  {name:"Handa Island", loc:"Scotland", lat:58.3667, lon:-5.1833,
+   url:"https://www.scottishwildlifetrust.org.uk",
+   birds:["Great Skua","Arctic Skua","Puffin","Razorbill","Guillemot","Kittiwake","Fulmar","Black Guillemot","Storm Petrel"]},
+  {name:"Blakeney Point", loc:"Norfolk", lat:52.9756, lon:1.0006,
+   url:"https://www.nationaltrust.org.uk/blakeney",
+   birds:["Little Tern","Arctic Tern","Common Tern","Sandwich Tern","Roseate Tern","Bar-tailed Godwit","Knot","Sanderling","Turnstone"]},
+  {name:"RSPB Forsinard Flows", loc:"Sutherland", lat:58.3667, lon:-3.9000,
+   url:"https://www.rspb.org.uk/reserves/forsinard",
+   birds:["Greenshank","Golden Plover","Dunlin","Red-throated Diver","Black-throated Diver","Short-eared Owl","Hen Harrier","Merlin","Curlew"]},
+  {name:"The Brecks", loc:"Norfolk/Suffolk", lat:52.4500, lon:0.7500,
+   url:"https://www.brecks.org",
+   birds:["Stone-curlew","Woodlark","Crossbill","Hawfinch","Goshawk","Hobby","Tree Pipit","Nightjar","Dotterel"]},
+  {name:"Hickling Broad NNR", loc:"Norfolk", lat:52.7500, lon:1.5333,
+   url:"https://www.norfolkwildlifetrust.org.uk/hickling",
+   birds:["Crane","Marsh Harrier","Bearded Tit","Cetti's Warbler","Bittern","Spotted Crake","Garganey","Savi's Warbler","Water Rail"]},
+  {name:"Spurn Point", loc:"Yorkshire", lat:53.5658, lon:0.1153,
+   url:"https://www.ywt.org.uk/nature-reserves/spurn",
+   birds:["Yellow-browed Warbler","Red-backed Shrike","Barred Warbler","Little Bunting","Richard's Pipit","Lapland Bunting","Snow Bunting","Grey Phalarope"]},
+  {name:"Bass Rock", loc:"East Lothian", lat:56.0765, lon:-2.6400,
+   url:"https://www.seabird.org",
+   birds:["Gannet","Shag","Puffin","Razorbill","Guillemot","Kittiwake","Fulmar"]},
+  {name:"St Abb's Head", loc:"Scottish Borders", lat:55.9128, lon:-2.1381,
+   url:"https://www.nts.org.uk/st-abbs-head",
+   birds:["Puffin","Razorbill","Guillemot","Kittiwake","Fulmar","Shag","Gannet","Peregrine"]},
+  {name:"RSPB Arne", loc:"Dorset", lat:50.6833, lon:-2.0500,
+   url:"https://www.rspb.org.uk/reserves/arne",
+   birds:["Dartford Warbler","Nightjar","Hobby","Stone-curlew","Barn Owl","Peregrine","Common Sandpiper","Spotted Redshank"]},
+  {name:"RSPB Dee Estuary", loc:"Cheshire/Wales", lat:53.2500, lon:-3.1000,
+   url:"https://www.rspb.org.uk/reserves/dee-estuary",
+   birds:["Pintail","Black-tailed Godwit","Redshank","Curlew","Oystercatcher","Knot","Dunlin","Bar-tailed Godwit","Peregrine","Merlin"]},
+  {name:"Morecambe Bay", loc:"Lancashire/Cumbria", lat:54.1167, lon:-2.8500,
+   url:"https://www.rspb.org.uk/reserves/morecambe-bay",
+   birds:["Knot","Bar-tailed Godwit","Oystercatcher","Redshank","Curlew","Grey Plover","Dunlin","Sanderling","Eider","Red-breasted Merganser","Scaup"]},
+  {name:"Pembrokeshire Coast", loc:"Wales", lat:51.8500, lon:-5.0000,
+   url:"https://www.pembrokeshirecoast.wales",
+   birds:["Chough","Puffin","Razorbill","Guillemot","Gannet","Storm Petrel","Manx Shearwater","Kittiwake","Fulmar"]},
+  {name:"Northumberland Coast", loc:"Northumberland", lat:55.5000, lon:-1.7000,
+   url:"https://www.northumberlandcoast.org.uk",
+   birds:["Eider","Puffin","Arctic Tern","Little Tern","Ringed Plover","Sanderling","Turnstone","Purple Sandpiper"]},
+  {name:"RSPB Old Hall Marshes", loc:"Essex", lat:51.7500, lon:0.7833,
+   url:"https://www.rspb.org.uk/reserves/old-hall-marshes",
+   birds:["Brent Goose","Avocet","Black-tailed Godwit","Spotted Redshank","Marsh Harrier","Short-eared Owl","Hen Harrier","Merlin","Garganey"]},
+  {name:"Wicken Fen", loc:"Cambridgeshire", lat:52.3000, lon:0.2833,
+   url:"https://www.nationaltrust.org.uk/wicken-fen",
+   birds:["Common Crane","Marsh Harrier","Hobby","Bearded Tit","Cetti's Warbler","Reed Warbler","Sedge Warbler","Little Egret","Water Rail"]},
+  {name:"RSPB Mersehead", loc:"Dumfries & Galloway", lat:54.8917, lon:-3.6333,
+   url:"https://www.rspb.org.uk/reserves/mersehead",
+   birds:["Barnacle Goose","Whooper Swan","Pink-footed Goose","Peregrine","Hen Harrier","Short-eared Owl","Avocet","Oystercatcher"]},
+  {name:"Loch of Strathbeg", loc:"Aberdeenshire", lat:57.6500, lon:-1.9333,
+   url:"https://www.rspb.org.uk/reserves/loch-of-strathbeg",
+   birds:["Pink-footed Goose","Whooper Swan","Barnacle Goose","Greylag Goose","Teal","Wigeon","Pintail","Pochard","Tufted Duck","Goldeneye","Long-tailed Duck"]},
+];
+
+/* layer state */
+let _showSightings=true, _showHotspots=true;
+let _hotspotMarkers=[];
+
+function makeHotspotIcon(count){
+  return L.divIcon({
+    className:'',
+    iconSize:[30,30], iconAnchor:[15,30], popupAnchor:[0,-32],
+    html:`<div class="hot-pin" style="position:relative">
+      <span class="emoji">🔭</span>
+      <span class="hot-count">${count}</span>
+    </div>`
+  });
+}
+
+function renderHotspots(){
+  /* clear existing */
+  _hotspotMarkers.forEach(m=>m.remove()); _hotspotMarkers=[];
+  if(!_showHotspots||!_map) return;
+
+  const unspotted=new Set(ALL_BIRDS.filter(b=>!spotted.has(b.w)).map(b=>b.n));
+  let totalHotspots=0;
+
+  HOTSPOTS.forEach(h=>{
+    /* which target birds at this site haven't been seen yet? */
+    const unseen=h.birds.filter(name=>unspotted.has(name));
+    if(!unseen.length) return; /* all seen here already */
+    totalHotspots++;
+
+    const icon=makeHotspotIcon(unseen.length);
+    const popupHtml=`<div class="hot-popup">
+      <p class="pop-title">🔭 ${h.name}</p>
+      <p class="pop-subtitle">📍 ${h.loc}${h.url?` · <a href="${h.url}" target="_blank">Visit site</a>`:''}</p>
+      <p class="pop-unseen">${unseen.length} bird${unseen.length>1?'s':''} to find here:</p>
+      <p class="pop-bird-list">${unseen.join(' · ')}</p>
+    </div>`;
+    const m=L.marker([h.lat,h.lon],{icon,zIndexOffset:-100})
+      .addTo(_map).bindPopup(popupHtml,{maxWidth:270});
+    _hotspotMarkers.push(m);
+  });
+
+  /* update info */
+  const mapInfo=document.getElementById('mapInfo');
+  if(mapInfo) mapInfo.textContent=totalHotspots?`${totalHotspots} spots with unseen birds`:'';
+}
+
+function toggleSightingsLayer(){
+  _showSightings=!_showSightings;
+  const btn=document.getElementById('toggleSightings');
+  btn.classList.toggle('on',_showSightings);
+  if(_showSightings){
+    _markers.forEach(m=>m.addTo(_map));
+  } else {
+    _markers.forEach(m=>m.remove());
+  }
+}
+function toggleHotspotsLayer(){
+  _showHotspots=!_showHotspots;
+  const btn=document.getElementById('toggleHotspots');
+  btn.classList.toggle('on',_showHotspots);
+  renderHotspots();
+}
+
+document.getElementById('toggleSightings').addEventListener('click',toggleSightingsLayer);
+document.getElementById('toggleHotspots').addEventListener('click',toggleHotspotsLayer);
+
+/* ── tabs ── */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab+'Panel').classList.add('active');
+    if(btn.dataset.tab==='map'){
+      loadLeaflet(renderMap);
+    }
+  });
+});
+
+
+/* ── bootstrap ── */
+(function(){
+  /* restore user identity */
+  if(currentUser) setUser(currentUser);
+  else setTimeout(promptWho,600); /* brief delay so page renders first */
+
+  /* who-are-you form */
+  document.getElementById('whoBtn').addEventListener('click',()=>{
+    const v=document.getElementById('whoInput').value;
+    if(v.trim()) setUser(v);
+  });
+  document.getElementById('whoInput').addEventListener('keydown',e=>{
+    if(e.key==='Enter'){document.getElementById('whoBtn').click();}
+  });
+
+  render();
+  updateProgress();
+
+  /* initial sync from API */
+  syncFromAPI();
+})();
+</script>
+
+</html>

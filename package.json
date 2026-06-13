@@ -1,0 +1,8 @@
+{
+  "name": "uk-bird-tracker",
+  "version": "1.0.0",
+  "description": "Shared UK bird life-list tracker",
+  "dependencies": {
+    "@vercel/kv": "^1.0.0"
+  }
+}
