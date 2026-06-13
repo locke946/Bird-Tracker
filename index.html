@@ -930,14 +930,22 @@ async function syncFromAPI(){
 
     /* ── PULL: bring in anything from remote we don't have or that's newer ── */
     for(const [wiki,s] of Object.entries(remote)){
-      if(!sightings[wiki]||new Date(s.ts)>=new Date(sightings[wiki].ts||0)){
-        sightings[wiki]=s; spotted.add(wiki); changed=true;
+      const localTs=new Date(sightings[wiki]?.ts||0);
+      const remoteTs=new Date(s.ts||0);
+      if(remoteTs>=localTs){
+        if(s._deleted){
+          /* tombstone — other device un-ticked this bird */
+          if(spotted.has(wiki)){ delete sightings[wiki]; spotted.delete(wiki); changed=true; }
+        } else {
+          sightings[wiki]=s; spotted.add(wiki); changed=true;
+        }
       }
     }
 
     /* ── PUSH: send anything local that remote doesn't have or that's newer ──
        This is the key fix — makes sure both devices converge on the same list */
     for(const [wiki,s] of Object.entries(sightings)){
+      if(s._deleted) continue; /* tombstones handled above, don't re-push */
       const remoteTs=remote[wiki]?new Date(remote[wiki].ts||0):null;
       const localTs=new Date(s.ts||0);
       if(!remote[wiki]||localTs>remoteTs){
@@ -1021,12 +1029,16 @@ let _pendingCoords=null;
 function toggleSpot(tile){
   const b=BIRDS[+tile.dataset.idx];
   if(spotted.has(b.w)){
-    /* un-tick: remove immediately, no location prompt */
+    /* un-tick: push tombstone so the other device removes it too */
     spotted.delete(b.w);
     delete sightings[b.w];
-    applySpot(tile);saveSpotted();saveSightings();updateCount();syncLbTick();
+    applySpot(tile);saveLocal();updateCount();syncLbTick();
     if(typeof applyFilters==='function') applyFilters();
     updateProgress();
+    /* tombstone tells the other device this bird was deliberately removed */
+    const tombstone={_deleted:true,ts:new Date().toISOString()};
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({wiki:b.w,sighting:tombstone})}).catch(()=>{});
   } else {
     /* new tick: open location sheet */
     _pendingTile=tile;
@@ -1039,13 +1051,20 @@ function commitSpot(tile, loc){
   spotted.add(b.w);
   const now=new Date();
   const dateStr=now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  sightings[b.w]={date:dateStr,loc:loc||'',ts:now.toISOString(),coords:_pendingCoords||null};
+  const data={date:dateStr,loc:loc||'',ts:now.toISOString(),
+    coords:_pendingCoords||null,user:currentUser||'Unknown'};
+  sightings[b.w]=data;
   _pendingCoords=null;
   if(loc) saveLastLoc(loc);
-  applySpot(tile);saveSpotted();saveSightings();updateCount();syncLbTick();showToast(b);
+  applySpot(tile);saveLocal();updateCount();syncLbTick();showToast(b);
   if(typeof applyFilters==='function') applyFilters();
   updateProgress();
   if(_map&&document.getElementById('mapPanel').classList.contains('active')){ renderHotspots(); }
+  /* push to shared API */
+  fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({wiki:b.w,sighting:data})}).catch(()=>{
+    data._localOnly=true; saveLocal(); /* mark for retry on next sync */
+  });
 }
 
 /* last-used locations for quick-fill */
