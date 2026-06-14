@@ -396,7 +396,7 @@
   .lb-hs-season.absent{background:#fef3e2;color:#8a5a1a;border-color:#f5d78a;}
   .lb-hs-season.irregular{background:#f0f0f0;color:#666;border-color:#ddd;}
 
-  /* nearby tab */
+  /* nearby tab — bird list */
   .nearby-header{padding:12px 0 6px;display:flex;flex-direction:column;gap:10px;}
   .nearby-loc-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .nearby-loc-bar .sync-dot{flex-shrink:0;}
@@ -410,33 +410,32 @@
   .radius-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .radius-row .label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;
     font-weight:700;color:var(--ink-soft);white-space:nowrap;}
-  .nearby-list{display:flex;flex-direction:column;gap:10px;padding:6px 0 10px;}
+  .nb-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .nb-toggle{display:flex;align-items:center;gap:5px;font-size:12px;
+    color:var(--ink-soft);cursor:pointer;margin-left:auto;}
+  .nb-toggle input{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;}
+  /* bird cards */
+  .nearby-list{display:flex;flex-direction:column;gap:8px;padding:6px 0 10px;}
   .nearby-empty{text-align:center;padding:40px 20px;font-family:var(--display);
     font-style:italic;color:var(--ink-soft);font-size:14px;}
   .nearby-empty .icon{font-size:36px;display:block;margin-bottom:10px;}
-  .nearby-item{background:var(--card);border:1.4px solid var(--line);
-    border-radius:12px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;
-    transition:border-color .15s;}
-  .nearby-item:hover{border-color:var(--accent);}
-  .nearby-dist{font-size:13px;font-weight:800;color:var(--accent);
-    min-width:46px;text-align:center;padding-top:2px;flex-shrink:0;}
-  .nearby-dist small{display:block;font-size:10px;font-weight:600;
-    color:var(--ink-soft);letter-spacing:.05em;}
-  .nearby-body{flex:1;min-width:0;}
-  .nearby-name{font-family:var(--display);font-weight:700;font-size:15px;
-    color:var(--ink);margin:0 0 2px;}
-  .nearby-meta{font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;}
-  .nearby-birds{display:flex;flex-wrap:wrap;gap:4px;}
-  .nearby-more{font-size:11px;color:var(--ink-soft);font-style:italic;
-    align-self:center;margin-left:4px;}
-  .nearby-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end;
-    flex-shrink:0;}
-  .nearby-dir{display:flex;align-items:center;justify-content:center;
-    width:36px;height:36px;border-radius:10px;background:var(--paper);
-    border:1.4px solid var(--line);text-decoration:none;font-size:18px;
-    transition:all .15s;flex-shrink:0;}
-  .nearby-dir:hover{border-color:var(--accent);background:#fff7f2;}
-  .nearby-all-seen{font-size:11px;color:var(--good);font-weight:700;margin-top:4px;}
+  .nb-card{background:var(--card);border:1.4px solid var(--line);border-radius:12px;
+    padding:11px 13px;display:flex;gap:10px;align-items:center;transition:border-color .15s;}
+  .nb-card:hover{border-color:var(--accent);}
+  .nb-card.nb-spotted{opacity:.55;}
+  .nb-tick{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;
+    align-items:center;justify-content:center;font-size:11px;font-weight:800;
+    border:2px solid var(--line);color:transparent;transition:all .15s;}
+  .nb-card.nb-spotted .nb-tick{background:var(--good);border-color:var(--good);color:#fff;}
+  .nb-body{flex:1;min-width:0;}
+  .nb-name{font-weight:700;font-size:14px;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .nb-latin{font-style:italic;font-size:10.5px;color:var(--ink-soft);font-weight:400;}
+  .nb-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px;}
+  .nb-site{font-size:11.5px;color:var(--ink-soft);text-decoration:none;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .nb-site:hover{color:var(--accent);}
+  .nearby-more{font-size:11px;color:var(--ink-soft);font-style:italic;}
 </style>
 </head>
 <body>
@@ -538,14 +537,20 @@
         <span id="nearbyLocMsg">Tap to find birds near you</span>
         <button id="nearbyDetect">📍 Detect location</button>
       </div>
-      <div class="radius-row">
-        <span class="label">Within</span>
-        <div class="pill-group" id="radiusPills">
-          <button class="pill" data-radius="10">10 mi</button>
-          <button class="pill active" data-radius="25">25 mi</button>
-          <button class="pill" data-radius="50">50 mi</button>
-          <button class="pill" data-radius="100">100 mi</button>
+      <div class="nb-controls">
+        <div class="radius-row">
+          <span class="label">Within</span>
+          <div class="pill-group" id="radiusPills">
+            <button class="pill" data-radius="10">10 mi</button>
+            <button class="pill active" data-radius="25">25 mi</button>
+            <button class="pill" data-radius="50">50 mi</button>
+            <button class="pill" data-radius="100">100 mi</button>
+          </div>
         </div>
+        <label class="nb-toggle">
+          <input type="checkbox" id="nbUnseenOnly" checked>
+          Unseen only
+        </label>
       </div>
     </div>
     <div id="nearbyList" class="nearby-list">
@@ -2394,42 +2399,65 @@ function directionsUrl(lat,lon){
 function renderNearby(){
   const list=document.getElementById('nearbyList');
   if(!_nearbyCoords){
-    list.innerHTML='<div class="nearby-empty"><span class="icon">📍</span>Tap "Detect location" to see which birding spots are near you and what you might find there</div>';
+    list.innerHTML='<div class="nearby-empty"><span class="icon">📍</span>Tap "Detect location" to see which birds you might find near you</div>';
     return;
   }
   const {lat,lon}=_nearbyCoords;
-  /* compute distance to every hotspot */
-  const withDist=HOTSPOTS.map(h=>({...h,dist:haversineMiles(lat,lon,h.lat,h.lon)}))
+
+  /* find hotspots within radius */
+  const nearHS=HOTSPOTS.map(h=>({...h,dist:haversineMiles(lat,lon,h.lat,h.lon)}))
     .filter(h=>h.dist<=_nearbyRadius)
     .sort((a,b)=>a.dist-b.dist);
 
-  if(!withDist.length){
-    list.innerHTML=`<div class="nearby-empty"><span class="icon">🌿</span>No birding hotspots found within ${_nearbyRadius} miles.<br>Try increasing the radius.</div>`;
+  if(!nearHS.length){
+    list.innerHTML=`<div class="nearby-empty"><span class="icon">🌿</span>No birding hotspots within ${_nearbyRadius} miles — try a wider radius.</div>`;
     return;
   }
 
-  list.innerHTML=withDist.map(h=>{
-    const unseen=h.birds.filter(n=>!spotted.has(ALL_BIRDS.find(b=>b.n===n)?.w||''));
-    const seenAll=unseen.length===0;
-    const distStr=h.dist<0.1?'<0.1':h.dist<10?`${Math.round(h.dist*10)/10}`:`${Math.round(h.dist)}`;
-    const birdPills=unseen.slice(0,6).map(n=>{
-      const b2=ALL_BIRDS.find(x=>x.n===n);
-      const st=b2?birdSeasonTag(b2.w):{present:true,icon:'📅',text:'',s:'yr'};
-      const cls=st.s==='ir'?'irregular':st.present?'present':'absent';
-      return `<span class="season-tag ${cls}" title="${st.tip}">${st.icon} ${n}</span>`;
-    }).join('');
-    const more=unseen.length>6?`<span class="nearby-more">+${unseen.length-6} more</span>`:'';
-    return `<div class="nearby-item">
-      <div class="nearby-dist">${distStr}<small>mi</small></div>
-      <div class="nearby-body">
-        <p class="nearby-name">${h.name}</p>
-        <p class="nearby-meta">${h.loc}${unseen.length?` · ${unseen.length} unseen bird${unseen.length>1?'s':''}`:''}</p>
-        ${seenAll
-          ? '<span class="nearby-all-seen">✓ All known birds spotted here!</span>'
-          : `<div class="nearby-birds">${birdPills}${more}</div>`
-        }
+  /* build bird → nearest site mapping */
+  const birdMap={};
+  nearHS.forEach(h=>{
+    h.birds.forEach(name=>{
+      const b=ALL_BIRDS.find(x=>x.n===name); if(!b) return;
+      if(!birdMap[name]||h.dist<birdMap[name].dist)
+        birdMap[name]={b,site:h.name,dist:h.dist,url:h.url,siteLoc:h.loc};
+    });
+  });
+
+  /* sort: unseen + in-season first, then by distance */
+  const birds=Object.values(birdMap).sort((a,b)=>{
+    const spA=spotted.has(a.b.w)?1:0, spB=spotted.has(b.b.w)?1:0;
+    if(spA!==spB) return spA-spB;
+    const stA=birdSeasonTag(a.b.w), stB=birdSeasonTag(b.b.w);
+    if(stA.present!==stB.present) return stB.present-stA.present;
+    return a.dist-b.dist;
+  });
+
+  const unseenOnly=document.getElementById('nbUnseenOnly')?.checked;
+  const shown=unseenOnly?birds.filter(x=>!spotted.has(x.b.w)):birds;
+
+  if(!shown.length){
+    list.innerHTML='<div class="nearby-empty"><span class="icon">🏆</span>You\'ve spotted all the birds near you! Try a wider radius.</div>';
+    return;
+  }
+
+  list.innerHTML=shown.map(({b,site,dist,url,siteLoc})=>{
+    const st=birdSeasonTag(b.w);
+    const isSp=spotted.has(b.w);
+    const cls=st.s==='ir'?'irregular':st.present?'present':'absent';
+    const d=dist<0.1?'<0.1':dist<10?`${Math.round(dist*10)/10}`:`${Math.round(dist)}`;
+    return `<div class="nb-card${isSp?' nb-spotted':''}">
+      <div class="nb-tick">${isSp?'✓':''}</div>
+      <div class="nb-body">
+        <div class="nb-name">${b.n}<span class="nb-latin"> · ${b.l}</span></div>
+        <div class="nb-row">
+          <span class="season-tag ${cls}">${st.icon} ${st.text}</span>
+          <a class="nb-site" href="${url||'#'}" target="_blank" rel="noopener"
+            onclick="${url?'':'event.preventDefault()'}">
+            📍 ${site} · ${d} mi
+          </a>
+        </div>
       </div>
-      <a class="nearby-dir" href="${directionsUrl(h.lat,h.lon)}" target="_blank" title="Get directions">🗺️</a>
     </div>`;
   }).join('');
 }
@@ -2469,6 +2497,7 @@ document.querySelectorAll('#radiusPills .pill').forEach(btn=>{
     renderNearby();
   });
 });
+document.getElementById('nbUnseenOnly').addEventListener('change',renderNearby);
 
 /* ── bootstrap ── */
 (function(){
