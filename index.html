@@ -395,6 +395,48 @@
   .lb-hs-season.present{background:#e8f4ec;color:#2d6b3e;border-color:#b8dfc4;}
   .lb-hs-season.absent{background:#fef3e2;color:#8a5a1a;border-color:#f5d78a;}
   .lb-hs-season.irregular{background:#f0f0f0;color:#666;border-color:#ddd;}
+
+  /* nearby tab */
+  .nearby-header{padding:12px 0 6px;display:flex;flex-direction:column;gap:10px;}
+  .nearby-loc-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .nearby-loc-bar .sync-dot{flex-shrink:0;}
+  #nearbyLocMsg{font-size:12.5px;font-family:var(--display);font-style:italic;
+    color:var(--ink-soft);flex:1;}
+  #nearbyDetect{font-family:var(--ui);font-size:12px;font-weight:700;
+    border:1.4px solid var(--line);background:var(--paper);color:var(--ink);
+    padding:6px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;
+    transition:all .15s;}
+  #nearbyDetect:hover{border-color:var(--accent);color:var(--accent);}
+  .radius-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .radius-row .label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;
+    font-weight:700;color:var(--ink-soft);white-space:nowrap;}
+  .nearby-list{display:flex;flex-direction:column;gap:10px;padding:6px 0 10px;}
+  .nearby-empty{text-align:center;padding:40px 20px;font-family:var(--display);
+    font-style:italic;color:var(--ink-soft);font-size:14px;}
+  .nearby-empty .icon{font-size:36px;display:block;margin-bottom:10px;}
+  .nearby-item{background:var(--card);border:1.4px solid var(--line);
+    border-radius:12px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;
+    transition:border-color .15s;}
+  .nearby-item:hover{border-color:var(--accent);}
+  .nearby-dist{font-size:13px;font-weight:800;color:var(--accent);
+    min-width:46px;text-align:center;padding-top:2px;flex-shrink:0;}
+  .nearby-dist small{display:block;font-size:10px;font-weight:600;
+    color:var(--ink-soft);letter-spacing:.05em;}
+  .nearby-body{flex:1;min-width:0;}
+  .nearby-name{font-family:var(--display);font-weight:700;font-size:15px;
+    color:var(--ink);margin:0 0 2px;}
+  .nearby-meta{font-size:11.5px;color:var(--ink-soft);margin:0 0 8px;}
+  .nearby-birds{display:flex;flex-wrap:wrap;gap:4px;}
+  .nearby-more{font-size:11px;color:var(--ink-soft);font-style:italic;
+    align-self:center;margin-left:4px;}
+  .nearby-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end;
+    flex-shrink:0;}
+  .nearby-dir{display:flex;align-items:center;justify-content:center;
+    width:36px;height:36px;border-radius:10px;background:var(--paper);
+    border:1.4px solid var(--line);text-decoration:none;font-size:18px;
+    transition:all .15s;flex-shrink:0;}
+  .nearby-dir:hover{border-color:var(--accent);background:#fff7f2;}
+  .nearby-all-seen{font-size:11px;color:var(--good);font-weight:700;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -427,6 +469,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="list">📋 Life List</button>
     <button class="tab-btn" data-tab="map">🗺️ Map</button>
+    <button class="tab-btn" data-tab="nearby">📍 Nearby</button>
   </div>
 
   <div class="tab-panel active" id="listPanel">
@@ -486,6 +529,31 @@
 
     <div class="grid" id="grid"></div>
 
+  </div>
+
+  <div class="tab-panel" id="nearbyPanel">
+    <div class="nearby-header">
+      <div class="nearby-loc-bar">
+        <div class="sync-dot" id="nearbyDot"></div>
+        <span id="nearbyLocMsg">Tap to find birds near you</span>
+        <button id="nearbyDetect">📍 Detect location</button>
+      </div>
+      <div class="radius-row">
+        <span class="label">Within</span>
+        <div class="pill-group" id="radiusPills">
+          <button class="pill" data-radius="10">10 mi</button>
+          <button class="pill active" data-radius="25">25 mi</button>
+          <button class="pill" data-radius="50">50 mi</button>
+          <button class="pill" data-radius="100">100 mi</button>
+        </div>
+      </div>
+    </div>
+    <div id="nearbyList" class="nearby-list">
+      <div class="nearby-empty">
+        <span class="icon">📍</span>
+        Tap "Detect location" to see which birding spots are near you and what you might find there
+      </div>
+    </div>
   </div>
 
   <div class="tab-panel" id="mapPanel">
@@ -1956,8 +2024,11 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(btn.dataset.tab+'Panel').classList.add('active');
-    if(btn.dataset.tab==='map'){
-      loadLeaflet(renderMap);
+    if(btn.dataset.tab==='map') loadLeaflet(renderMap);
+    if(btn.dataset.tab==='nearby'){
+      /* auto-detect on first open */
+      if(!_nearbyCoords) detectNearbyLocation();
+      else renderNearby();
     }
   });
 });
@@ -2301,6 +2372,103 @@ function birdSeasonTag(wikiTitle){
   }[s]||{icon:'📅',text:'Year-round',tip:''};
   return {s,present,icon:info.icon,text:info.text,tip:info.tip};
 }
+
+/* ── Nearby hotspots ── */
+let _nearbyCoords=null;
+let _nearbyRadius=25;
+
+function haversineMiles(lat1,lon1,lat2,lon2){
+  const R=3958.8,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function directionsUrl(lat,lon){
+  /* Apple Maps on iOS, Google Maps everywhere else */
+  const ua=navigator.userAgent;
+  if(/iPad|iPhone|iPod/.test(ua))
+    return `maps://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+}
+
+function renderNearby(){
+  const list=document.getElementById('nearbyList');
+  if(!_nearbyCoords){
+    list.innerHTML='<div class="nearby-empty"><span class="icon">📍</span>Tap "Detect location" to see which birding spots are near you and what you might find there</div>';
+    return;
+  }
+  const {lat,lon}=_nearbyCoords;
+  /* compute distance to every hotspot */
+  const withDist=HOTSPOTS.map(h=>({...h,dist:haversineMiles(lat,lon,h.lat,h.lon)}))
+    .filter(h=>h.dist<=_nearbyRadius)
+    .sort((a,b)=>a.dist-b.dist);
+
+  if(!withDist.length){
+    list.innerHTML=`<div class="nearby-empty"><span class="icon">🌿</span>No birding hotspots found within ${_nearbyRadius} miles.<br>Try increasing the radius.</div>`;
+    return;
+  }
+
+  list.innerHTML=withDist.map(h=>{
+    const unseen=h.birds.filter(n=>!spotted.has(ALL_BIRDS.find(b=>b.n===n)?.w||''));
+    const seenAll=unseen.length===0;
+    const distStr=h.dist<0.1?'<0.1':h.dist<10?`${Math.round(h.dist*10)/10}`:`${Math.round(h.dist)}`;
+    const birdPills=unseen.slice(0,6).map(n=>{
+      const b2=ALL_BIRDS.find(x=>x.n===n);
+      const st=b2?birdSeasonTag(b2.w):{present:true,icon:'📅',text:'',s:'yr'};
+      const cls=st.s==='ir'?'irregular':st.present?'present':'absent';
+      return `<span class="season-tag ${cls}" title="${st.tip}">${st.icon} ${n}</span>`;
+    }).join('');
+    const more=unseen.length>6?`<span class="nearby-more">+${unseen.length-6} more</span>`:'';
+    return `<div class="nearby-item">
+      <div class="nearby-dist">${distStr}<small>mi</small></div>
+      <div class="nearby-body">
+        <p class="nearby-name">${h.name}</p>
+        <p class="nearby-meta">${h.loc}${unseen.length?` · ${unseen.length} unseen bird${unseen.length>1?'s':''}`:''}</p>
+        ${seenAll
+          ? '<span class="nearby-all-seen">✓ All known birds spotted here!</span>'
+          : `<div class="nearby-birds">${birdPills}${more}</div>`
+        }
+      </div>
+      <a class="nearby-dir" href="${directionsUrl(h.lat,h.lon)}" target="_blank" title="Get directions">🗺️</a>
+    </div>`;
+  }).join('');
+}
+
+function detectNearbyLocation(){
+  const dot=document.getElementById('nearbyDot');
+  const msg=document.getElementById('nearbyLocMsg');
+  if(!navigator.geolocation){msg.textContent='Geolocation not available';return;}
+  dot.className='sync-dot busy'; msg.textContent='Detecting location…';
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      _nearbyCoords={lat:pos.coords.latitude,lon:pos.coords.longitude};
+      dot.className='sync-dot ok';
+      /* reverse geocode for display */
+      fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&localityLanguage=en`)
+        .then(r=>r.json()).then(d=>{
+          const place=[d.locality||d.city,d.principalSubdivision].filter(Boolean).join(', ');
+          msg.textContent=place?`Near ${place}`:`${pos.coords.latitude.toFixed(3)}°N`;
+        }).catch(()=>{ msg.textContent=`${pos.coords.latitude.toFixed(3)}°N, ${Math.abs(pos.coords.longitude).toFixed(3)}°${pos.coords.longitude<0?'W':'E'}`; });
+      renderNearby();
+    },
+    err=>{
+      dot.className='sync-dot err';
+      msg.textContent=err.code===1?'Location denied — enable in settings':'Could not get location';
+    },
+    {timeout:10000,maximumAge:300000,enableHighAccuracy:false}
+  );
+}
+
+document.getElementById('nearbyDetect').addEventListener('click',detectNearbyLocation);
+
+document.querySelectorAll('#radiusPills .pill').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('#radiusPills .pill').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    _nearbyRadius=+btn.dataset.radius;
+    renderNearby();
+  });
+});
 
 /* ── bootstrap ── */
 (function(){
