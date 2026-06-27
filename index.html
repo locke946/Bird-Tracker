@@ -400,6 +400,14 @@
 
   button.pill.active.season-pill{background:#1a7a6e;border-color:#1a7a6e;}
   button.pill.active.near-pill{background:#5b4fcf;border-color:#5b4fcf;}
+
+  /* world tab */
+  .world-sub{font-family:var(--display);font-style:italic;color:var(--ink-soft);
+    font-size:13px;margin:10px 0 12px;}
+  .world-stats{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+  button.pill.active.cont-pill{background:#5b4fcf;border-color:#5b4fcf;}
+  .bird-pin.world{background:#5b4fcf;}
+  .rarity.world-badge{background:#5b4fcf;}
 </style>
 </head>
 <body>
@@ -432,6 +440,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="list">📋 Life List</button>
     <button class="tab-btn" data-tab="map">🗺️ Map</button>
+    <button class="tab-btn" data-tab="world">🌍 World</button>
   </div>
 
   <div class="tab-panel active" id="listPanel">
@@ -512,6 +521,50 @@
   </div>
 
 
+  <div class="tab-panel" id="worldPanel">
+    <p class="world-sub">Birds spotted outside the UK. Add more anytime by editing WORLD_BIRDS in the code and redeploying.</p>
+    <div class="world-stats">
+      <div class="prog-bar-wrap" style="flex:1"><div class="prog-bar-fill" id="worldProgFill" style="width:0%;background:#5b4fcf"></div></div>
+      <span class="prog-pct" id="worldProgPct" style="color:#5b4fcf">0%</span>
+      <span class="prog-total" id="worldProgTotal">0/0</span>
+    </div>
+
+    <div class="filters">
+      <div class="search-wrap">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="#163b3a" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="#163b3a" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input type="search" id="worldSearch" placeholder="Search world birds…" autocomplete="off" spellcheck="off">
+      </div>
+      <div class="filter-row">
+        <span class="label">Continent</span>
+        <div class="pill-group" id="cont-pills">
+          <button class="pill active" data-cont="all">All</button>
+          <button class="pill cont-pill" data-cont="Africa">🦁 Africa</button>
+          <button class="pill cont-pill" data-cont="Asia">🐯 Asia</button>
+          <button class="pill cont-pill" data-cont="North America">🦅 N. America</button>
+          <button class="pill cont-pill" data-cont="South America">🦜 S. America</button>
+          <button class="pill cont-pill" data-cont="Oceania">🦘 Oceania</button>
+          <button class="pill cont-pill" data-cont="Polar">🧊 Polar</button>
+          <button class="pill cont-pill" data-cont="Europe">🏰 Europe</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <span class="label">Status</span>
+        <div class="pill-group">
+          <button class="pill active" data-wspot="all">All</button>
+          <button class="pill spot-pill" data-wspot="spotted">Spotted ✓</button>
+          <button class="pill unseen-pill" data-wspot="unseen">Not yet</button>
+        </div>
+        <span class="filter-count" id="world-filter-count"></span>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <span class="hint">Tap any bird · <span class="count" id="worldCount">0</span> / <span id="worldTotal">0</span> spotted</span>
+    </div>
+
+    <div class="grid" id="worldGrid"></div>
+  </div>
+
   <div class="tab-panel" id="mapPanel">
     <div class="map-toggles">
       <button class="map-toggle sightings-toggle on" id="toggleSightings">📍 My sightings</button>
@@ -526,6 +579,7 @@
     <div class="map-legend" id="mapLegend">
       <span><span class="dot" style="background:var(--ink)"></span>Your sightings</span>
       <span><span class="dot" style="background:var(--accent)"></span>Multiple species</span>
+      <span><span class="dot" style="background:#5b4fcf"></span>World sightings</span>
       <span><span class="dot" style="background:#1a7a6e"></span>Recommended spots</span>
       <span><span class="dot" style="background:#e8a020"></span>Bird count</span>
     </div>
@@ -921,6 +975,75 @@ const ALL_BIRDS = [
   {n:"Little Bunting",l:"Emberiza pusilla",w:"Little bunting",r:"hard",g:"garden",a:GENERIC},
 ];
 
+/* ══════════════════════════════════════════════════════════════════════════
+   WORLD BIRDS — birds spotted outside the UK.
+
+   TO ADD MORE: copy a line below and edit it. Each bird needs:
+     n         — display name (e.g. "Snowy Owl")
+     l         — latin/scientific name
+     w         — EXACT English Wikipedia article title (used to fetch the photo
+                 and as the unique sync key — must not match a UK bird's title)
+     country   — shown as the badge on the card
+     continent — must be one of: Africa, Asia, North America, South America,
+                 Oceania, Polar, Europe  (controls which filter pill shows it)
+     lat, lon  — the pin location shown on the Map tab when this bird is ticked
+   Then redeploy (git push) — no other code changes needed.
+   ══════════════════════════════════════════════════════════════════════════ */
+const WORLD_BIRDS = [
+  {n:"Ostrich",l:"Struthio camelus",w:"Common ostrich",country:"Tanzania",continent:"Africa",lat:-2.33,lon:34.83,g:"world",a:GENERIC},
+  {n:"African Penguin",l:"Spheniscus demersus",w:"African penguin",country:"South Africa",continent:"Africa",lat:-34.18,lon:18.45,g:"world",a:GENERIC},
+  {n:"Secretarybird",l:"Sagittarius serpentarius",w:"Secretarybird",country:"Kenya",continent:"Africa",lat:-1.3,lon:36.82,g:"world",a:GENERIC},
+  {n:"Lilac-breasted Roller",l:"Coracias caudatus",w:"Lilac-breasted roller",country:"Kenya",continent:"Africa",lat:-1.3,lon:36.82,g:"world",a:GENERIC},
+  {n:"Grey Crowned Crane",l:"Balearica regulorum",w:"Grey crowned crane",country:"Uganda",continent:"Africa",lat:1.37,lon:32.29,g:"world",a:GENERIC},
+  {n:"Shoebill",l:"Balaeniceps rex",w:"Shoebill",country:"Uganda",continent:"Africa",lat:1.37,lon:32.29,g:"world",a:GENERIC},
+  {n:"Hamerkop",l:"Scopus umbretta",w:"Hamerkop",country:"South Africa",continent:"Africa",lat:-25.75,lon:28.19,g:"world",a:GENERIC},
+  {n:"Marabou Stork",l:"Leptoptilos crumenifer",w:"Marabou stork",country:"Kenya",continent:"Africa",lat:-1.3,lon:36.82,g:"world",a:GENERIC},
+  {n:"Southern Ground Hornbill",l:"Bucorvus leadbeateri",w:"Southern ground hornbill",country:"South Africa",continent:"Africa",lat:-25.75,lon:28.19,g:"world",a:GENERIC},
+  {n:"African Fish Eagle",l:"Haliaeetus vocifer",w:"African fish eagle",country:"Botswana",continent:"Africa",lat:-22.33,lon:24.68,g:"world",a:GENERIC},
+  {n:"Greater Flamingo",l:"Phoenicopterus roseus",w:"Greater flamingo",country:"Kenya",continent:"Africa",lat:-0.37,lon:36.08,g:"world",a:GENERIC},
+  {n:"Superb Starling",l:"Lamprotornis superbus",w:"Superb starling",country:"Kenya",continent:"Africa",lat:-1.3,lon:36.82,g:"world",a:GENERIC},
+  {n:"Indian Peafowl",l:"Pavo cristatus",w:"Indian peafowl",country:"India",continent:"Asia",lat:20.59,lon:78.96,g:"world",a:GENERIC},
+  {n:"Sarus Crane",l:"Antigone antigone",w:"Sarus crane",country:"India",continent:"Asia",lat:26.85,lon:80.95,g:"world",a:GENERIC},
+  {n:"Great Hornbill",l:"Buceros bicornis",w:"Great hornbill",country:"India",continent:"Asia",lat:10.09,lon:76.52,g:"world",a:GENERIC},
+  {n:"Himalayan Monal",l:"Lophophorus impejanus",w:"Himalayan monal",country:"Nepal",continent:"Asia",lat:28.39,lon:83.92,g:"world",a:GENERIC},
+  {n:"Red Junglefowl",l:"Gallus gallus",w:"Red junglefowl",country:"Thailand",continent:"Asia",lat:15.87,lon:100.99,g:"world",a:GENERIC},
+  {n:"Oriental Pied Hornbill",l:"Anthracoceros albirostris",w:"Oriental pied hornbill",country:"Malaysia",continent:"Asia",lat:4.21,lon:101.97,g:"world",a:GENERIC},
+  {n:"Sri Lanka Blue Magpie",l:"Urocissa ornata",w:"Sri Lanka blue magpie",country:"Sri Lanka",continent:"Asia",lat:7.87,lon:80.77,g:"world",a:GENERIC},
+  {n:"Red-crowned Crane",l:"Grus japonensis",w:"Red-crowned crane",country:"Japan",continent:"Asia",lat:43.06,lon:144.36,g:"world",a:GENERIC},
+  {n:"Bald Eagle",l:"Haliaeetus leucocephalus",w:"Bald eagle",country:"USA",continent:"North America",lat:61.22,lon:-149.9,g:"world",a:GENERIC},
+  {n:"Roseate Spoonbill",l:"Platalea ajaja",w:"Roseate spoonbill",country:"USA",continent:"North America",lat:27.62,lon:-81.5,g:"world",a:GENERIC},
+  {n:"California Condor",l:"Gymnogyps californianus",w:"California condor",country:"USA",continent:"North America",lat:36.5,lon:-118.7,g:"world",a:GENERIC},
+  {n:"Greater Roadrunner",l:"Geococcyx californianus",w:"Greater roadrunner",country:"USA",continent:"North America",lat:33.45,lon:-111.94,g:"world",a:GENERIC},
+  {n:"Northern Cardinal",l:"Cardinalis cardinalis",w:"Northern cardinal",country:"USA",continent:"North America",lat:31.0,lon:-99.0,g:"world",a:GENERIC},
+  {n:"Wood Duck",l:"Aix sponsa",w:"Wood duck",country:"Canada",continent:"North America",lat:45.42,lon:-75.7,g:"world",a:GENERIC},
+  {n:"Anna's Hummingbird",l:"Calypte anna",w:"Anna's hummingbird",country:"USA",continent:"North America",lat:36.5,lon:-118.7,g:"world",a:GENERIC},
+  {n:"Great Horned Owl",l:"Bubo virginianus",w:"Great horned owl",country:"USA",continent:"North America",lat:39.83,lon:-98.58,g:"world",a:GENERIC},
+  {n:"Toco Toucan",l:"Ramphastos toco",w:"Toco toucan",country:"Brazil",continent:"South America",lat:-14.24,lon:-51.93,g:"world",a:GENERIC},
+  {n:"Hyacinth Macaw",l:"Anodorhynchus hyacinthinus",w:"Hyacinth macaw",country:"Brazil",continent:"South America",lat:-17.83,lon:-57.65,g:"world",a:GENERIC},
+  {n:"Scarlet Macaw",l:"Ara macao",w:"Scarlet macaw",country:"Peru",continent:"South America",lat:-3.75,lon:-73.25,g:"world",a:GENERIC},
+  {n:"Andean Condor",l:"Vultur gryphus",w:"Andean condor",country:"Peru",continent:"South America",lat:-13.16,lon:-72.55,g:"world",a:GENERIC},
+  {n:"Resplendent Quetzal",l:"Pharomachrus mocinno",w:"Resplendent quetzal",country:"Costa Rica",continent:"South America",lat:9.75,lon:-83.75,g:"world",a:GENERIC},
+  {n:"Greater Rhea",l:"Rhea americana",w:"Greater rhea",country:"Argentina",continent:"South America",lat:-34.6,lon:-58.4,g:"world",a:GENERIC},
+  {n:"Magellanic Penguin",l:"Spheniscus magellanicus",w:"Magellanic penguin",country:"Argentina",continent:"South America",lat:-50.33,lon:-68.53,g:"world",a:GENERIC},
+  {n:"Chilean Flamingo",l:"Phoenicopterus chilensis",w:"Chilean flamingo",country:"Chile",continent:"South America",lat:-35.68,lon:-71.54,g:"world",a:GENERIC},
+  {n:"Emu",l:"Dromaius novaehollandiae",w:"Emu",country:"Australia",continent:"Oceania",lat:-25.27,lon:133.78,g:"world",a:GENERIC},
+  {n:"Southern Cassowary",l:"Casuarius casuarius",w:"Southern cassowary",country:"Australia",continent:"Oceania",lat:-16.92,lon:145.77,g:"world",a:GENERIC},
+  {n:"Laughing Kookaburra",l:"Dacelo novaeguineae",w:"Laughing kookaburra",country:"Australia",continent:"Oceania",lat:-33.87,lon:151.21,g:"world",a:GENERIC},
+  {n:"Rainbow Lorikeet",l:"Trichoglossus moluccanus",w:"Rainbow lorikeet",country:"Australia",continent:"Oceania",lat:-33.87,lon:151.21,g:"world",a:GENERIC},
+  {n:"Superb Lyrebird",l:"Menura novaehollandiae",w:"Superb lyrebird",country:"Australia",continent:"Oceania",lat:-37.51,lon:145.0,g:"world",a:GENERIC},
+  {n:"Australian Magpie",l:"Gymnorhina tibicen",w:"Australian magpie",country:"Australia",continent:"Oceania",lat:-33.87,lon:151.21,g:"world",a:GENERIC},
+  {n:"Great Spotted Kiwi",l:"Apteryx haastii",w:"Great spotted kiwi",country:"New Zealand",continent:"Oceania",lat:-41.3,lon:174.8,g:"world",a:GENERIC},
+  {n:"South Island Takahe",l:"Porphyrio hochstetteri",w:"South Island takahē",country:"New Zealand",continent:"Oceania",lat:-45.03,lon:168.0,g:"world",a:GENERIC},
+  {n:"Emperor Penguin",l:"Aptenodytes forsteri",w:"Emperor penguin",country:"Antarctica",continent:"Polar",lat:-75.25,lon:-0.07,g:"world",a:GENERIC},
+  {n:"King Penguin",l:"Aptenodytes patagonicus",w:"King penguin",country:"South Georgia",continent:"Polar",lat:-54.43,lon:-36.59,g:"world",a:GENERIC},
+  {n:"Wandering Albatross",l:"Diomedea exulans",w:"Wandering albatross",country:"Southern Ocean",continent:"Polar",lat:-50.0,lon:0.0,g:"world",a:GENERIC},
+  {n:"Eurasian Eagle-Owl",l:"Bubo bubo",w:"Eurasian eagle-owl",country:"Spain",continent:"Europe",lat:40.42,lon:-3.7,g:"world",a:GENERIC},
+  {n:"Great White Pelican",l:"Pelecanus onocrotalus",w:"Great white pelican",country:"Romania",continent:"Europe",lat:45.2,lon:29.2,g:"world",a:GENERIC},
+];
+const WORLD_WIKIS = new Set(WORLD_BIRDS.map(b=>b.w));
+const UK_WIKIS = new Set(ALL_BIRDS.map(b=>b.w));
+
+
 /* all 77 birds shown at once */
 let BIRDS = ALL_BIRDS;
 document.getElementById('total').textContent = ALL_BIRDS.length;
@@ -1031,6 +1154,8 @@ async function syncFromAPI(){
       document.querySelectorAll('.tile').forEach(applySpot);
       updateCount(); updateProgress();
       if(typeof applyFilters==='function') applyFilters();
+      if(typeof updateWorldCount==='function') updateWorldCount();
+      if(typeof applyWorldFilters==='function') applyWorldFilters();
     }
     setSyncStatus('ok','Synced ✓');
   }catch(e){
@@ -1063,8 +1188,13 @@ async function deleteSighting(wiki){
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncFromAPI();});
 setInterval(syncFromAPI,30000);
 
+/* looks up the right bird object whether the tile came from the UK grid or World grid */
+function birdForTile(tile){
+  return tile.dataset.list==='world' ? WORLD_BIRDS[+tile.dataset.idx] : BIRDS[+tile.dataset.idx];
+}
+
 function applySpot(tile){
-  const b=BIRDS[+tile.dataset.idx], on=spotted.has(b.w);
+  const b=birdForTile(tile), on=spotted.has(b.w);
   tile.classList.toggle('spotted',on);
   tile.querySelector('.check').setAttribute('aria-pressed',on);
   const locEl=tile.querySelector('.tile-loc');
@@ -1087,14 +1217,16 @@ let _pendingTile=null;
 let _pendingCoords=null;
 
 function toggleSpot(tile){
-  const b=BIRDS[+tile.dataset.idx];
+  const b=birdForTile(tile);
+  const isWorld=tile.dataset.list==='world';
   if(spotted.has(b.w)){
     /* un-tick: push tombstone so the other device removes it too */
     spotted.delete(b.w);
     delete sightings[b.w];
-    applySpot(tile);saveLocal();updateCount();syncLbTick();
-    if(typeof applyFilters==='function') applyFilters();
-    updateProgress();
+    applySpot(tile);saveLocal();
+    if(isWorld){ updateWorldCount(); if(typeof applyWorldFilters==='function') applyWorldFilters(); }
+    else { updateCount(); if(typeof applyFilters==='function') applyFilters(); updateProgress(); }
+    syncLbTick();
     /* tombstone tells the other device this bird was deliberately removed */
     const tombstone={_deleted:true,ts:new Date().toISOString()};
     fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1107,18 +1239,21 @@ function toggleSpot(tile){
 }
 
 function commitSpot(tile, loc){
-  const b=BIRDS[+tile.dataset.idx];
+  const b=birdForTile(tile);
+  const isWorld=tile.dataset.list==='world';
   spotted.add(b.w);
   const now=new Date();
   const dateStr=now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  const data={date:dateStr,loc:loc||'',ts:now.toISOString(),
-    coords:_pendingCoords||null,user:currentUser||'Unknown'};
+  /* world birds default to their predefined country coords unless GPS overrode it */
+  const coords=_pendingCoords||(isWorld?{lat:b.lat,lon:b.lon}:null);
+  const data={date:dateStr,loc:loc||(isWorld?b.country:''),ts:now.toISOString(),
+    coords,user:currentUser||'Unknown'};
   sightings[b.w]=data;
   _pendingCoords=null;
   if(loc) saveLastLoc(loc);
-  applySpot(tile);saveLocal();updateCount();syncLbTick();showToast(b);
-  if(typeof applyFilters==='function') applyFilters();
-  updateProgress();
+  applySpot(tile);saveLocal();syncLbTick();showToast(b);
+  if(isWorld){ updateWorldCount(); if(typeof applyWorldFilters==='function') applyWorldFilters(); }
+  else { updateCount(); if(typeof applyFilters==='function') applyFilters(); updateProgress(); }
   if(_map&&document.getElementById('mapPanel').classList.contains('active')){ renderHotspots(); }
   /* push to shared API */
   fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1166,13 +1301,20 @@ function render(){
   updateCount();
   loadPhotos();
 }
-function updateCount(){countEl.textContent=document.querySelectorAll('.tile.spotted').length;}
+function updateCount(){countEl.textContent=document.querySelectorAll('#grid .tile.spotted').length;}
 
 document.getElementById('resetBtn').addEventListener('click',()=>{
-  spotted.clear(); sightings={}; saveLocal();
-  document.querySelectorAll('.tile').forEach(applySpot);
+  /* only reset the UK life-list — world sightings are kept untouched */
+  for(const w of [...spotted]){
+    if(!UK_WIKIS.has(w)) continue;
+    spotted.delete(w); delete sightings[w];
+    const tombstone={_deleted:true,ts:new Date().toISOString()};
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({wiki:w,sighting:tombstone})}).catch(()=>{});
+  }
+  saveLocal();
+  document.querySelectorAll('#grid .tile').forEach(applySpot);
   updateCount(); syncLbTick(); updateProgress();
-  fetch(API,{method:'PATCH'}).catch(()=>{});
 });
 
 document.getElementById('shuffleBtn').addEventListener('click',()=>{
@@ -1180,6 +1322,149 @@ document.getElementById('shuffleBtn').addEventListener('click',()=>{
   const arr=[...BIRDS];
   for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
   BIRDS=arr; render();
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WORLD TAB — separate grid, same tile look, country badge instead of rarity
+   ══════════════════════════════════════════════════════════════════════════ */
+const worldGrid=document.getElementById('worldGrid');
+const worldCountEl=document.getElementById('worldCount');
+
+function renderWorld(){
+  worldGrid.innerHTML='';
+  WORLD_BIRDS.forEach((b,i)=>{
+    const t=document.createElement('div');
+    t.className='tile'; t.dataset.idx=i; t.dataset.zoom=''; t.dataset.list='world';
+    t.dataset.cont=b.continent;
+    t.innerHTML=`
+      <button class="photo" type="button" aria-label="Zoom in on ${b.n}">
+        <div class="fallback">${b.a}</div>
+        <div class="spin"></div>
+        <img alt="${b.n}" loading="lazy">
+        <div class="stamp">Spotted ✓</div>
+        <span class="zoom-hint" aria-hidden="true">⤢</span>
+      </button>
+      <button class="check" type="button" aria-label="Mark ${b.n} spotted" aria-pressed="false">✓</button>
+      <div class="label">
+        <div class="name">${b.n}</div>
+        <div class="latin">${b.l}</div>
+        <div class="rarity world-badge">${b.country}</div>
+        <div class="tile-loc"></div>
+        <div class="tile-spotter" style="display:none"></div>
+      </div>`;
+    t.querySelector('.photo').addEventListener('click',()=>openLightbox(t));
+    t.querySelector('.check').addEventListener('click',e=>{e.stopPropagation();toggleSpot(t);});
+    t.querySelector('.label').addEventListener('click',()=>toggleSpot(t));
+    worldGrid.appendChild(t);
+    applySpot(t);
+  });
+  document.getElementById('worldTotal').textContent=WORLD_BIRDS.length;
+  updateWorldCount();
+  loadWorldPhotos();
+}
+
+function updateWorldCount(){
+  const n=document.querySelectorAll('#worldGrid .tile.spotted').length;
+  worldCountEl.textContent=n;
+  const tot=WORLD_BIRDS.length;
+  const pct=tot?Math.round(n/tot*100):0;
+  const fill=document.getElementById('worldProgFill');
+  const pctEl=document.getElementById('worldProgPct');
+  const totEl=document.getElementById('worldProgTotal');
+  if(fill) fill.style.width=pct+'%';
+  if(pctEl) pctEl.textContent=pct+'%';
+  if(totEl) totEl.textContent=`${n}/${tot}`;
+}
+
+/* world bird photos — same Wikipedia JSONP approach as loadPhotos() */
+function loadWorldPhotos(){
+  const tiles=[...worldGrid.querySelectorAll('.tile')];
+  const urlMap={};
+  let loaded=0;
+
+  function applyUrls(){
+    tiles.forEach(t=>{
+      const b=WORLD_BIRDS[+t.dataset.idx];
+      const img=t.querySelector('img'), spin=t.querySelector('.spin'), fb=t.querySelector('.fallback');
+      const src=urlMap[b.w.toLowerCase()];
+      if(src){
+        t.dataset.zoom=src;
+        img.onload=()=>{img.classList.add('ready');fb.style.display='none';spin.style.display='none';loaded++;};
+        img.onerror=()=>{spin.style.display='none';};
+        img.src=src;
+      } else { spin.style.display='none'; }
+    });
+  }
+  function mergePages(data){
+    const pages=(data&&data.query&&data.query.pages)||{};
+    Object.values(pages).forEach(pg=>{
+      if(pg.thumbnail&&pg.thumbnail.source) urlMap[pg.title.toLowerCase()]=pg.thumbnail.source;
+    });
+    (data.query&&data.query.redirects||[]).forEach(r=>{
+      if(urlMap[r.to.toLowerCase()]&&!urlMap[r.from.toLowerCase()])
+        urlMap[r.from.toLowerCase()]=urlMap[r.to.toLowerCase()];
+    });
+    (data.query&&data.query.normalized||[]).forEach(n=>{
+      if(urlMap[n.to.toLowerCase()]&&!urlMap[n.from.toLowerCase()])
+        urlMap[n.from.toLowerCase()]=urlMap[n.to.toLowerCase()];
+    });
+  }
+  function jsonpBatch(titles, onDone){
+    const cbName='_wpbw_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const script=document.createElement('script');
+    let done=false;
+    const finish=()=>{ if(done)return; done=true; delete window[cbName]; script.remove(); onDone(); };
+    setTimeout(finish, 12000);
+    window[cbName]=(data)=>{ mergePages(data); finish(); };
+    script.onerror=finish;
+    script.src=`https://en.wikipedia.org/w/api.php?action=query&format=json&callback=${cbName}&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=400&pilimit=50&titles=${encodeURIComponent(titles.join('|'))}`;
+    document.head.appendChild(script);
+  }
+  const allTitles=WORLD_BIRDS.map(b=>b.w.replace(/ /g,'_'));
+  const chunkSize=50;
+  const chunks=[];
+  for(let i=0;i<allTitles.length;i+=chunkSize) chunks.push(allTitles.slice(i,i+chunkSize));
+  let doneBatches=0;
+  chunks.forEach(chunk=>{
+    jsonpBatch(chunk,()=>{ doneBatches++; if(doneBatches===chunks.length) applyUrls(); });
+  });
+}
+
+/* ── World filters ── */
+const worldFilterState={cont:'all',wspot:'all',q:''};
+const worldFilterCountEl=document.getElementById('world-filter-count');
+
+function applyWorldFilters(){
+  const tiles=[...document.querySelectorAll('#worldGrid .tile')];
+  let vis=0;
+  tiles.forEach(t=>{
+    const b=WORLD_BIRDS[+t.dataset.idx];
+    const isSp=spotted.has(b.w);
+    const ok=
+      (worldFilterState.cont==='all'||t.dataset.cont===worldFilterState.cont)&&
+      (worldFilterState.wspot==='all'||(worldFilterState.wspot==='spotted'?isSp:!isSp))&&
+      (worldFilterState.q===''||b.n.toLowerCase().includes(worldFilterState.q)||b.country.toLowerCase().includes(worldFilterState.q));
+    t.classList.toggle('hidden',!ok);
+    if(ok)vis++;
+  });
+  const tot=tiles.length;
+  if(worldFilterCountEl) worldFilterCountEl.textContent=vis<tot?`Showing ${vis} of ${tot}`:'';
+}
+
+document.querySelectorAll('[data-cont]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-cont]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); worldFilterState.cont=btn.dataset.cont; applyWorldFilters();
+  });
+});
+document.querySelectorAll('[data-wspot]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-wspot]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); worldFilterState.wspot=btn.dataset.wspot; applyWorldFilters();
+  });
+});
+document.getElementById('worldSearch').addEventListener('input',e=>{
+  worldFilterState.q=e.target.value.trim().toLowerCase(); applyWorldFilters();
 });
 
 /* Load ALL bird photos — batched into groups of 50 (Wikipedia API limit).
@@ -1281,7 +1566,8 @@ function syncLbTick(){
 }
 function openLightbox(tile){
   lbTile=tile;
-  const b=BIRDS[+tile.dataset.idx], zoom=tile.dataset.zoom;
+  const b=birdForTile(tile), zoom=tile.dataset.zoom;
+  const isWorld=tile.dataset.list==='world';
   LB.querySelector('.lb-imgwrap').innerHTML = zoom
     ? `<img alt="${b.n}" src="${zoom}">`
     : `<div>${b.a}</div>`;
@@ -1298,33 +1584,37 @@ function openLightbox(tile){
   const s=sightings[b.w];
   sightEl.innerHTML=s?[s.user?`<strong>${s.user}</strong>`:'',s.loc?`📍 ${s.loc}`:'',s.date].filter(Boolean).join(' · '):'';
 
-  /* ── Where to find it: list hotspots for this bird ── */
+  /* ── Where to find it: list hotspots for this bird (UK only) ── */
   const hsPanel=LB.querySelector('#lbHotspots');
   const hsList=LB.querySelector('#lbHsList');
-  const birdHotspots=typeof HOTSPOTS!=='undefined'
-    ? HOTSPOTS.filter(h=>h.birds.includes(b.n)) : [];
-  if(birdHotspots.length){
-    const isSpotted=spotted.has(b.w);
-    const stag=birdSeasonTag(b.w);
-    hsList.innerHTML=birdHotspots.map(h=>{
-      const cls=stag.s==='ir'?'irregular':stag.present?'present':'absent';
-      return `<a class="lb-hs-item" href="${h.url||'#'}" target="_blank" rel="noopener"
-        onclick="${h.url?'':'event.preventDefault()'}">
-        <div class="lb-hs-dot${spotted.has(b.w)?' spotted':''}"></div>
-        <div class="lb-hs-info">
-          <div class="lb-hs-name">${h.name}</div>
-          <div class="lb-hs-loc">${h.loc}</div>
-        </div>
-        <span class="lb-hs-season ${cls}" title="${stag.tip}">${stag.icon} ${stag.text}</span>
-      </a>`;
-    }).join('');
+  if(isWorld){
+    hsList.innerHTML=`<p class="lb-no-hs">🌍 Typically found in <strong>${b.country}</strong> (${b.continent})</p>`;
     hsPanel.style.display='block';
-    /* update title based on spotted status */
-    hsPanel.querySelector('.lb-hs-title').textContent=
-      s ? 'Also found at' : 'Where to find it';
+    hsPanel.querySelector('.lb-hs-title').textContent='Native range';
   } else {
-    hsList.innerHTML=`<p class="lb-no-hs">No specific hotspot data for this bird yet</p>`;
-    hsPanel.style.display='block';
+    const birdHotspots=typeof HOTSPOTS!=='undefined'
+      ? HOTSPOTS.filter(h=>h.birds.includes(b.n)) : [];
+    if(birdHotspots.length){
+      const stag=birdSeasonTag(b.w);
+      hsList.innerHTML=birdHotspots.map(h=>{
+        const cls=stag.s==='ir'?'irregular':stag.present?'present':'absent';
+        return `<a class="lb-hs-item" href="${h.url||'#'}" target="_blank" rel="noopener"
+          onclick="${h.url?'':'event.preventDefault()'}">
+          <div class="lb-hs-dot${spotted.has(b.w)?' spotted':''}"></div>
+          <div class="lb-hs-info">
+            <div class="lb-hs-name">${h.name}</div>
+            <div class="lb-hs-loc">${h.loc}</div>
+          </div>
+          <span class="lb-hs-season ${cls}" title="${stag.tip}">${stag.icon} ${stag.text}</span>
+        </a>`;
+      }).join('');
+      hsPanel.style.display='block';
+      hsPanel.querySelector('.lb-hs-title').textContent=
+        s ? 'Also found at' : 'Where to find it';
+    } else {
+      hsList.innerHTML=`<p class="lb-no-hs">No specific hotspot data for this bird yet</p>`;
+      hsPanel.style.display='block';
+    }
   }
 
   LB.hidden=false; document.body.style.overflow='hidden';
@@ -1379,7 +1669,7 @@ const filterState={grp:'all',rar:'all',spot:'all',q:'',season:'all',near:'all'};
 const filterCountEl=document.getElementById('filter-count');
 
 function applyFilters(){
-  const tiles=[...document.querySelectorAll('.tile')];
+  const tiles=[...document.querySelectorAll('#grid .tile')];
   let vis=0;
   tiles.forEach(t=>{
     const b=BIRDS[+t.dataset.idx];
@@ -1490,7 +1780,6 @@ function openLocSheet(bird){
   locBirdName.textContent=bird.n;
   const now=new Date();
   locAutoInfo.textContent=now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  locInputEl.value='';
   setLocStatus('');
   _pendingCoords=null;
   /* recent locations */
@@ -1501,8 +1790,18 @@ function openLocSheet(bird){
     :'';
   locOverlay.classList.add('open');
   document.body.style.overflow='hidden';
-  /* auto-detect location */
-  detectLocation();
+
+  if(bird.country!==undefined){
+    /* world bird — use its predefined country location, skip real GPS
+       (you're almost certainly logging this after the fact, not standing there) */
+    locInputEl.value=bird.country;
+    _pendingCoords={lat:bird.lat,lon:bird.lon};
+    setLocStatus('🌍 Using '+bird.country+' — tap ↺ for your real GPS if you\u2019re actually there');
+  } else {
+    locInputEl.value='';
+    /* auto-detect location for UK birds */
+    detectLocation();
+  }
 }
 function closeLocSheet(){locOverlay.classList.remove('open');document.body.style.overflow='';}
 
@@ -1596,12 +1895,12 @@ function loadLeaflet(cb){
   document.head.appendChild(s);
 }
 
-function makePinIcon(count, emoji){
+function makePinIcon(count, emoji, isWorld){
   const multi=count>1;
   return L.divIcon({
     className:'',
     iconSize:[32,32], iconAnchor:[16,32], popupAnchor:[0,-34],
-    html:`<div class="bird-pin${multi?' multi':''}" style="position:relative">
+    html:`<div class="bird-pin${multi?' multi':''}${isWorld?' world':''}" style="position:relative">
       <span class="emoji">${emoji||'🐦'}</span>
       ${count>1?`<span class="pin-count">${count}</span>`:''}
     </div>`
@@ -1609,8 +1908,9 @@ function makePinIcon(count, emoji){
 }
 
 function getGroupEmoji(birdName){
-  const b=ALL_BIRDS.find(x=>x.n===birdName);
+  const b=ALL_BIRDS.find(x=>x.n===birdName)||WORLD_BIRDS.find(x=>x.n===birdName);
   if(!b) return '🐦';
+  if(b.g==='world') return '🌍';
   const map={water:'🦆',wader:'🐦',sea:'⛵',heron:'🦢',raptor:'🦅',game:'🕊️',garden:'🌿'};
   return map[b.g]||'🐦';
 }
@@ -1666,17 +1966,21 @@ async function renderMap(){
     for(const item of resolved){
       const key=`${item.coords.lat.toFixed(3)},${item.coords.lon.toFixed(3)}`;
       if(!clusters[key]) clusters[key]={coords:item.coords,birds:[]};
-      const bName=ALL_BIRDS.find(b=>b.w===item.wiki)?.n||item.wiki;
-      clusters[key].birds.push({name:bName,date:item.s.date,loc:item.s.loc});
+      const bName=ALL_BIRDS.find(b=>b.w===item.wiki)?.n
+        || WORLD_BIRDS.find(b=>b.w===item.wiki)?.n
+        || item.wiki;
+      const isWorldBird=WORLD_WIKIS.has(item.wiki);
+      clusters[key].birds.push({name:bName,date:item.s.date,loc:item.s.loc,world:isWorldBird});
     }
 
     const bounds=[];
     for(const [,cluster] of Object.entries(clusters)){
       const {coords,birds}=cluster;
-      const emoji=birds.length===1?getGroupEmoji(birds[0].name):'🐦';
-      const icon=makePinIcon(birds.length,emoji);
+      const allWorld=birds.every(b=>b.world);
+      const emoji=birds.length===1?getGroupEmoji(birds[0].name):(allWorld?'🌍':'🐦');
+      const icon=makePinIcon(birds.length,emoji,allWorld);
       const popupHtml=`<div class="map-popup">
-        <p class="pop-loc">📍 ${birds[0].loc||'Location'}</p>
+        <p class="pop-loc">${allWorld?'🌍':'📍'} ${birds[0].loc||'Location'}</p>
         ${birds.map(b=>`<div class="pop-bird">
           <span>${b.name}</span>
           <span class="pop-date">${b.date||''}</span>
@@ -1930,6 +2234,87 @@ const HOTSPOTS = [
   {name:"Lee Valley Park", loc:"Hertfordshire/Essex", lat:51.71, lon:-0.02,
    url:"https://www.leevalleypark.org.uk",
    birds:["Bittern","Bearded Tit","Cetti's Warbler","Kingfisher","Garganey","Spotted Crake","Scaup","Smew","Goosander","Goldeneye","Pochard","Tufted Duck","Great Crested Grebe","Little Grebe","Common Tern","Black Tern","Hobby","Marsh Harrier","Water Rail","Little Egret"]},
+  {name:"Marazion Marsh RSPB",loc:"Cornwall",lat:50.128,lon:-5.476,
+   url:"https://www.rspb.org.uk/reserves/marazion-marsh",
+   birds:["Marsh Harrier","Garganey","Spotted Crake","Cetti's Warbler","Reed Warbler","Sedge Warbler","Water Rail","Bittern","Little Egret","Great White Egret","Hobby","Grasshopper Warbler","Savi's Warbler","Yellow Wagtail","Kingfisher"]},
+  {name:"Hayle Estuary",loc:"Cornwall",lat:50.185,lon:-5.43,
+   url:"https://www.cornwallwildlifetrust.org.uk",
+   birds:["Black-tailed Godwit","Curlew Sandpiper","Little Stint","Spotted Redshank","American Golden Plover","Buff-breasted Sandpiper","White-rumped Sandpiper","Pectoral Sandpiper","Lesser Yellowlegs","Bonaparte's Gull","Glaucous Gull","Ring-billed Gull","Slavonian Grebe","Red-necked Grebe","Avocet","Ruff"]},
+  {name:"St Ives Island",loc:"Cornwall",lat:50.215,lon:-5.482,
+   url:"https://siberianbirds.com/stives",
+   birds:["Sooty Shearwater","Great Shearwater","Cory's Shearwater","Balearic Shearwater","Manx Shearwater","Storm Petrel","Leach's Petrel","Sabine's Gull","Pomarine Skua","Arctic Skua","Long-tailed Skua","Grey Phalarope","Little Gull","Pomarine Skua","Arctic Tern","Black Tern"]},
+  {name:"Farlington Marshes",loc:"Hampshire",lat:50.843,lon:-1.03,
+   url:"https://www.hiwwt.org.uk/nature-reserves/farlington-marshes",
+   birds:["Brent Goose","Teal","Wigeon","Shoveler","Pintail","Shelduck","Avocet","Dunlin","Grey Plover","Black-tailed Godwit","Spotted Redshank","Redshank","Curlew","Oystercatcher","Little Egret","Peregrine","Merlin","Hen Harrier","Short-eared Owl","Water Pipit","Bewick's Swan"]},
+  {name:"RSPB Titchfield Haven",loc:"Hampshire",lat:50.836,lon:-1.234,
+   url:"https://www.rspb.org.uk/reserves/titchfield-haven",
+   birds:["Cetti's Warbler","Bearded Tit","Marsh Harrier","Garganey","Spotted Crake","Water Rail","Hobby","Common Tern","Little Tern","Sandwich Tern","Avocet","Black-tailed Godwit","Spotted Redshank","Ruff","Little Egret","Bittern","Reed Warbler","Sedge Warbler","Yellow Wagtail"]},
+  {name:"RSPB Otmoor",loc:"Oxfordshire",lat:51.832,lon:-1.11,
+   url:"https://www.rspb.org.uk/reserves/otmoor",
+   birds:["Common Crane","Marsh Harrier","Hobby","Peregrine","Short-eared Owl","Barn Owl","Lapwing","Snipe","Jack Snipe","Teal","Wigeon","Shoveler","Garganey","Cetti's Warbler","Reed Warbler","Sedge Warbler","Yellow Wagtail","Ruff","Black-tailed Godwit","Spotted Redshank"]},
+  {name:"RSPB Nagshead",loc:"Forest of Dean",lat:51.77,lon:-2.555,
+   url:"https://www.rspb.org.uk/reserves/nagshead",
+   birds:["Pied Flycatcher","Wood Warbler","Redstart","Tree Pipit","Spotted Flycatcher","Crossbill","Lesser Redpoll","Hawfinch","Lesser Spotted Woodpecker","Great Spotted Woodpecker","Green Woodpecker","Goshawk","Honey-buzzard","Sparrowhawk","Buzzard","Tawny Owl","Nuthatch","Treecreeper"]},
+  {name:"RSPB South Stack",loc:"Anglesey",lat:53.306,lon:-4.697,
+   url:"https://www.rspb.org.uk/reserves/south-stack",
+   birds:["Puffin","Razorbill","Guillemot","Kittiwake","Fulmar","Shag","Chough","Peregrine","Rock Pipit","Stonechat","Whitethroat","Wheatear","Gannet","Manx Shearwater","Storm Petrel"]},
+  {name:"WWT Llanelli",loc:"Carmarthenshire",lat:51.685,lon:-4.175,
+   url:"https://www.wwt.org.uk/wetland-centres/llanelli",
+   birds:["Little Egret","Great White Egret","Spoonbill","Curlew","Redshank","Oystercatcher","Dunlin","Knot","Lapwing","Teal","Wigeon","Shoveler","Pintail","Shelduck","Black-tailed Godwit","Avocet","Avocet"]},
+  {name:"Elan Valley",loc:"Powys",lat:52.275,lon:-3.617,
+   url:"https://www.elanvalley.org.uk",
+   birds:["Red Kite","Peregrine","Merlin","Ring Ouzel","Dipper","Grey Wagtail","Common Sandpiper","Pied Flycatcher","Wood Warbler","Redstart","Tree Pipit","Raven","Buzzard","Goshawk","Sparrowhawk","Crossbill","Siskin","Goosander"]},
+  {name:"RSPB Lake Vyrnwy",loc:"Powys",lat:52.756,lon:-3.637,
+   url:"https://www.rspb.org.uk/reserves/lake-vyrnwy",
+   birds:["Red Kite","Peregrine","Merlin","Pied Flycatcher","Wood Warbler","Redstart","Tree Pipit","Dipper","Grey Wagtail","Common Sandpiper","Goshawk","Sparrowhawk","Teal","Tawny Owl","Barn Owl","Crossbill","Siskin","Raven"]},
+  {name:"Walberswick NNR",loc:"Suffolk",lat:52.321,lon:1.65,
+   url:"https://www.naturalengland.org.uk",
+   birds:["Bittern","Marsh Harrier","Bearded Tit","Cetti's Warbler","Reed Warbler","Sedge Warbler","Savi's Warbler","Grasshopper Warbler","Water Rail","Spotted Crake","Garganey","Hobby","Nightjar","Woodlark"]},
+  {name:"Grafham Water",loc:"Cambridgeshire",lat:52.283,lon:-0.314,
+   url:"https://www.anglianwaterparks.co.uk/grafham-water",
+   birds:["Common Tern","Arctic Tern","Black Tern","Little Gull","Mediterranean Gull","Glaucous Gull","Iceland Gull","Smew","Goosander","Goldeneye","Scaup","Ring-necked Duck","Osprey","Garganey","Red-necked Grebe","Slavonian Grebe","Black-necked Grebe","Red-crested Pochard"]},
+  {name:"Tring Reservoirs",loc:"Hertfordshire",lat:51.802,lon:-0.678,
+   url:"https://www.hertswildlifetrust.org.uk/nature-reserves/tring-reservoirs",
+   birds:["Garganey","Smew","Goosander","Goldeneye","Red-crested Pochard","Scaup","Ring-necked Duck","Common Tern","Black Tern","Little Gull","Slavonian Grebe","Black-necked Grebe","Osprey","Water Rail","Hobby","Cetti's Warbler"]},
+  {name:"RSPB Rainham Marshes",loc:"Essex",lat:51.49,lon:0.21,
+   url:"https://www.rspb.org.uk/reserves/rainham-marshes",
+   birds:["Short-eared Owl","Hen Harrier","Peregrine","Merlin","Marsh Harrier","Hobby","Avocet","Black-tailed Godwit","Spotted Redshank","Ruff","Dunlin","Lapwing","Cetti's Warbler","Bearded Tit","Bittern","Water Rail","Yellow Wagtail","Garganey","Pintail","Wigeon"]},
+  {name:"Lindisfarne NNR",loc:"Northumberland",lat:55.68,lon:-1.8,
+   url:"https://www.naturalengland.org.uk/lindisfarne",
+   birds:["Brent Goose","Whooper Swan","Bewick's Swan","Wigeon","Teal","Pintail","Long-tailed Duck","Common Scoter","Velvet Scoter","Red-breasted Merganser","Eider","Knot","Dunlin","Grey Plover","Bar-tailed Godwit","Curlew","Oystercatcher","Ringed Plover","Sanderling","Turnstone","Purple Sandpiper","Short-eared Owl","Hen Harrier","Peregrine","Merlin","Twite"]},
+  {name:"Filey Brigg",loc:"North Yorkshire",lat:54.215,lon:-0.27,
+   url:"https://www.fileybirdobservatory.co.uk",
+   birds:["Snow Bunting","Lapland Bunting","Shore Lark","Red-backed Shrike","Yellow-browed Warbler","Pallas's Warbler","Little Auk","Sooty Shearwater","Pomarine Skua","Little Gull","Sabine's Gull","Wryneck","Bluethroat","Red-breasted Flycatcher","Barred Warbler","Rustic Bunting"]},
+  {name:"Tophill Low NR",loc:"East Yorkshire",lat:53.903,lon:-0.419,
+   url:"https://www.ywt.org.uk/nature-reserves/tophill-low",
+   birds:["Common Tern","Arctic Tern","Black Tern","Little Gull","Garganey","Marsh Harrier","Short-eared Owl","Barn Owl","Hobby","Osprey","Smew","Goosander","Goldeneye","Scaup","Ring-necked Duck","Spotted Redshank","Wood Sandpiper","Curlew Sandpiper","Ruff","Black-tailed Godwit"]},
+  {name:"WWT Caerlaverock",loc:"Dumfries & Galloway",lat:54.986,lon:-3.553,
+   url:"https://www.wwt.org.uk/wetland-centres/caerlaverock",
+   birds:["Barnacle Goose","Whooper Swan","Bewick's Swan","Pintail","Wigeon","Teal","Shoveler","Peregrine","Hen Harrier","Short-eared Owl","Barn Owl","Merlin","Pink-footed Goose","Oystercatcher","Dunlin","Curlew","Redshank"]},
+  {name:"Fowlsheugh RSPB",loc:"Aberdeenshire",lat:56.894,lon:-2.197,
+   url:"https://www.rspb.org.uk/reserves/fowlsheugh",
+   birds:["Guillemot","Razorbill","Kittiwake","Puffin","Fulmar","Shag","Gannet","Cormorant","Rock Pipit","Peregrine","Great Skua","Arctic Skua"]},
+  {name:"Montrose Basin",loc:"Angus",lat:56.72,lon:-2.48,
+   url:"https://www.swt.org.uk/reserves/montrose-basin",
+   birds:["Pink-footed Goose","Greylag Goose","Whooper Swan","Eider","Wigeon","Teal","Pintail","Shelduck","Oystercatcher","Knot","Dunlin","Redshank","Bar-tailed Godwit","Grey Plover","Curlew","Osprey","Peregrine"]},
+  {name:"Loch of Lowes",loc:"Perthshire",lat:56.592,lon:-3.681,
+   url:"https://www.swt.org.uk/reserves/loch-of-lowes",
+   birds:["Osprey","Great Crested Grebe","Goldeneye","Tufted Duck","Teal","Goosander","Red-breasted Merganser","Kingfisher","Dipper","Grey Wagtail","Pied Flycatcher","Common Sandpiper","Crested Tit","Siskin","Crossbill"]},
+  {name:"RSPB Lochwinnoch",loc:"Ayrshire",lat:55.794,lon:-4.627,
+   url:"https://www.rspb.org.uk/reserves/lochwinnoch",
+   birds:["Teal","Wigeon","Shoveler","Pochard","Tufted Duck","Goldeneye","Great Crested Grebe","Water Rail","Spotted Crake","Bittern","Marsh Harrier","Cetti's Warbler","Sedge Warbler","Reed Warbler","Whooper Swan","Pintail"]},
+  {name:"Glen Affric",loc:"Highland",lat:57.267,lon:-5.017,
+   url:"https://www.nature.scot/enjoying-outdoors/scotlands-national-nature-reserves/glen-affric-national-nature-reserve",
+   birds:["Crested Tit","Scottish Crossbill","Parrot Crossbill","Golden Eagle","Osprey","Black Grouse","Capercaillie","Goldeneye","Goosander","Dipper","Ring Ouzel","Common Sandpiper","Redstart","Tree Pipit","Siskin","Lesser Redpoll","Raven"]},
+  {name:"Beinn Eighe NNR",loc:"Highland",lat:57.644,lon:-5.315,
+   url:"https://www.nature.scot/beinn-eighe-national-nature-reserve",
+   birds:["Golden Eagle","Red-throated Diver","Black-throated Diver","Osprey","Peregrine","Merlin","Crested Tit","Crossbill","Scottish Crossbill","Ptarmigan","Red Grouse","Dipper","Ring Ouzel","Common Sandpiper","Goosander","Red-breasted Merganser","Dotterel","Snow Bunting"]},
+  {name:"Isle of May NNR",loc:"Fife",lat:56.186,lon:-2.556,
+   url:"https://www.nature.scot/isle-may-national-nature-reserve",
+   birds:["Puffin","Razorbill","Guillemot","Kittiwake","Shag","Fulmar","Eider","Common Tern","Arctic Tern","Gannet","Yellow-browed Warbler","Red-backed Shrike","Wryneck","Bluethroat","Barred Warbler","Firecrest","Red-breasted Flycatcher","Lapland Bunting","Snow Bunting"]},
+  {name:"Fife Ness",loc:"Fife",lat:56.277,lon:-2.588,
+   url:"https://fifebirds.com/fife-ness-bird-obs",
+   birds:["Snow Bunting","Lapland Bunting","Yellow-browed Warbler","Pallas's Warbler","Little Auk","Sooty Shearwater","Pomarine Skua","Sabine's Gull","Little Gull","Red-necked Phalarope","Grey Phalarope","Wryneck","Bluethroat","Barred Warbler","Red-breasted Flycatcher","Rustic Bunting"]},
   {name:"Knepp Estate", loc:"West Sussex", lat:50.9710, lon:-0.3580,
    url:"https://knepp.co.uk/wildlife",
    birds:["Turtle Dove","Nightingale","Lesser Spotted Woodpecker","White Stork","Purple Heron","Night Heron","Squacco Heron","Glossy Ibis","Spotted Crake","Garganey","Hobby","Peregrine","Barn Owl","Little Owl","Black Stork","Little Bittern","Montagu's Harrier","Red-footed Falcon"]},
@@ -2479,6 +2864,7 @@ document.querySelectorAll('[data-near]').forEach(btn=>{
 
   render();
   updateProgress();
+  renderWorld();
 
   /* initial sync from API */
   syncFromAPI();
